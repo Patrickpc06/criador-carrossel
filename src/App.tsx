@@ -9,37 +9,34 @@ import {
   ChevronLeft, 
   ChevronRight, 
   Grid, 
-  Smartphone,
-  MoveHorizontal,
-  LayoutTemplate,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  Ruler,
-  Upload,
-  Maximize2,
-  Droplets,
-  Layers,
-  Eye,
-  EyeOff,
-  Loader2,
-  Minus,
-  Plus as PlusIcon,
-  Save,
-  LogOut,
-  User as UserIcon,
-  CheckCircle2,
-  Sparkles,
-  Bold,
-  Italic,
-  Underline,
+  Smartphone, 
+  MoveHorizontal, 
+  LayoutTemplate, 
+  AlignLeft, 
+  AlignCenter, 
+  AlignRight, 
+  Ruler, 
+  Upload, 
+  Maximize2, 
+  Droplets, 
+  Layers, 
+  Eye, 
+  EyeOff, 
+  Loader2, 
+  Minus, 
+  Plus as PlusIcon, 
+  Save, 
+  LogOut, 
+  CheckCircle2, 
+  Bold, 
+  Italic, 
+  Underline, 
   Highlighter, 
-  X,
+  X, 
   ArrowUpDown,   
-  ArrowLeftRight,
-  Crop,
-  Home,
-  FolderOpen
+  ArrowLeftRight, 
+  Crop, 
+  Home
 } from 'lucide-react';
 
 // --- TIPOS ---
@@ -122,7 +119,7 @@ interface SlideCanvasProps {
   showSafeZone?: boolean;
   selectedTextId?: string | null;
   onSelectText?: (id: string) => void;
-  canvasRef?: React.RefObject<HTMLDivElement | null>; // Ajuste de tipo para evitar erro TS2322
+  canvasRef?: React.RefObject<HTMLDivElement | null>;
   onInteractionStart?: (type: string, id: string | null, e: React.MouseEvent) => void;
 }
 
@@ -147,7 +144,7 @@ const SlideCanvas: React.FC<SlideCanvasProps> = ({
             style={{ left: `${slide.imgBoxX}%`, top: `${slide.imgBoxY}%`, width: `${slide.imgBoxW}%`, height: `${slide.imgBoxH}%`, zIndex: 1 }}
             onMouseDown={(e) => handleMouseDown('img_box_move', null, e)}
         >
-             <img src={slide.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${slide.imgPanX}% ${slide.imgPanY}%`, transform: `scale(${slide.imgZoom})`, pointerEvents: 'none' }} alt="Slide" />
+             <img src={slide.imageUrl} alt="Slide" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${slide.imgPanX}% ${slide.imgPanY}%`, transform: `scale(${slide.imgZoom})`, pointerEvents: 'none' }} />
              {isEditing && (
                 <div onMouseDown={(e) => handleMouseDown('img_box_resize', null, e)} className="absolute bottom-0 right-0 w-6 h-6 bg-white border-2 border-purple-600 rounded-tl-lg cursor-nwse-resize flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20" title="Redimensionar Caixa da Imagem">
                     <Crop size={12} className="text-purple-600"/>
@@ -478,27 +475,6 @@ export default function App() {
       setInteraction({ type, id, startX: e.clientX, startY: e.clientY, initialVal });
   };
 
-  const getSaveButtonContent = () => {
-    if (isSaving) return <Loader2 size={16} className="animate-spin" />;
-    if (saveMessage) return <span className="flex items-center gap-1"><CheckCircle2 size={16}/> Salvo</span>;
-    return (
-        <React.Fragment>
-            <Save size={16} />
-            <span className="hidden sm:inline">Salvar</span>
-        </React.Fragment>
-    );
-  };
-  
-  const getExportButtonContent = () => {
-      if (isExporting) return <Loader2 size={16} className="animate-spin" />;
-      return (
-          <React.Fragment>
-              <Download size={16} />
-              <span className="hidden sm:inline">Exportar</span>
-          </React.Fragment>
-      );
-  };
-
   if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-100"><Loader2 className="animate-spin text-purple-600" size={32}/></div>;
 
   if (view === 'auth') {
@@ -523,7 +499,7 @@ export default function App() {
     return (
       <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
         <header className="bg-white border-b border-slate-200 px-8 py-4 flex justify-between items-center sticky top-0 z-10">
-           <div className="flex items-center gap-2"><div className="bg-gradient-to-tr from-purple-500 to-pink-500 text-white p-2 rounded-lg"><Sparkles size={20} /></div><h1 className="text-xl font-bold text-slate-800">Dashboard</h1></div>
+           <div className="flex items-center gap-2"><div className="bg-gradient-to-tr from-purple-500 to-pink-500 text-white p-2 rounded-lg"><Smartphone size={20} /></div><h1 className="text-xl font-bold text-slate-800">Dashboard</h1></div>
            <div className="flex items-center gap-4">
              <div className="text-sm text-slate-500">Olá, <strong>{user?.email}</strong></div>
              <button onClick={handleLogout} className="p-2 hover:bg-slate-100 rounded-lg"><LogOut size={18}/></button>
@@ -543,7 +519,7 @@ export default function App() {
 
             {myProjects.length === 0 ? (
                 <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-300">
-                    <div className="inline-flex bg-slate-100 p-4 rounded-full mb-4 text-slate-400"><FolderOpen size={32} /></div>
+                    <div className="inline-flex bg-slate-100 p-4 rounded-full mb-4 text-slate-400"><Smartphone size={32} /></div>
                     <h3 className="text-lg font-medium text-slate-600">Nenhum projeto ainda</h3>
                     <p className="text-slate-400 text-sm mt-1">Clique no botão acima para começar!</p>
                 </div>
@@ -598,10 +574,10 @@ export default function App() {
             <button onClick={() => setViewMode('grid')} className={`p-2 rounded-md ${viewMode === 'grid' ? 'bg-white shadow text-purple-600' : 'text-slate-500'}`}><MoveHorizontal size={18} /></button>
           </div>
           <button onClick={handleSaveProject} disabled={isSaving} className={`flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium ${isSaving ? 'opacity-70' : ''}`}>
-            {getSaveButtonContent()}
+            {isSaving ? <Loader2 size={16} className="animate-spin" /> : saveMessage ? <span className="flex items-center gap-1"><CheckCircle2 size={16}/> Salvo</span> : <><Save size={16} /><span className="hidden sm:inline">Salvar</span></>}
           </button>
           <button onClick={handleExport} disabled={isExporting} className={`flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors text-sm font-medium ${isExporting ? 'opacity-70 cursor-wait' : ''}`}>
-            {getExportButtonContent()}
+            {isExporting ? <Loader2 size={16} className="animate-spin" /> : <><Download size={16} /><span className="hidden sm:inline">Exportar</span></>}
           </button>
           <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors ml-1"><LogOut size={18} /></button>
         </div>
