@@ -43,49 +43,30 @@ import {
   ArrowLeftRight,
   Crop,
   Home,
-  FolderOpen,
-  Copy // Ícone novo para duplicar
+  FolderOpen
 } from 'lucide-react';
 
 // --- TIPOS ---
-interface Position {
-  x: number;
-  y: number;
-}
+interface Position { x: number; y: number; }
 
 interface TextLayer {
   id: string;
   content: string;
-  x: number; 
-  y: number; 
-  w: number; 
-  fontFamily: string;
-  fontSize: number;
-  color: string;
-  backgroundColor: string; 
+  x: number; y: number; w: number; 
+  fontFamily: string; fontSize: number; color: string; backgroundColor: string; 
   align: 'left' | 'center' | 'right';
-  isBold: boolean;
-  isItalic: boolean;
-  isUnderline: boolean;
-  lineHeight: number;    
-  letterSpacing: number; 
+  isBold: boolean; isItalic: boolean; isUnderline: boolean;
+  lineHeight: number; letterSpacing: number; 
 }
 
 interface Slide {
   id: string;
   textLayers: TextLayer[];
   backgroundColor: string;
-  overlayEnabled: boolean;
-  overlayColor: string;
-  overlayOpacity: number;
+  overlayEnabled: boolean; overlayColor: string; overlayOpacity: number;
   imageUrl: string;
-  imageScale: number;
-  imagePos: { x: number; y: number };
-  // Geometria da caixa da imagem
-  imgBoxX: number; 
-  imgBoxY: number; 
-  imgBoxW: number; 
-  imgBoxH: number;
+  imgBoxX: number; imgBoxY: number; imgBoxW: number; imgBoxH: number; 
+  imgZoom: number; imgPanX: number; imgPanY: number; 
   template: 'text-only' | 'image-bottom' | 'image-top' | 'split';
 }
 
@@ -96,11 +77,7 @@ interface Project {
   slides: Slide[];
 }
 
-declare global {
-  interface Window {
-    html2canvas: any;
-  }
-}
+declare global { interface Window { html2canvas: any; } }
 
 // --- CONSTANTES ---
 const fontOptions = [
@@ -117,25 +94,16 @@ const createTextLayer = (type: 'title' | 'body' | 'subtitle' | 'caption'): TextL
     id: Math.random().toString(36).substr(2, 9),
     backgroundColor: 'transparent',
     align: 'left' as const,
-    isBold: false,
-    isItalic: false,
-    isUnderline: false,
-    lineHeight: 1.2,
-    letterSpacing: 0,
-    w: 80, 
+    isBold: false, isItalic: false, isUnderline: false,
+    lineHeight: 1.2, letterSpacing: 0, w: 80,
   };
 
   switch (type) {
-    case 'title':
-      return { ...base, content: 'Título Principal', x: 10, y: 10, fontFamily: "'Playfair Display', serif", fontSize: 32, color: '#5A3A29', isBold: true };
-    case 'subtitle':
-      return { ...base, content: 'Subtítulo Atrativo', x: 10, y: 25, fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: '#D4AF37' };
-    case 'body':
-      return { ...base, content: 'Seu texto principal vai aqui. Clique para editar.', x: 10, y: 35, fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: '#5A3A29' };
-    case 'caption':
-      return { ...base, content: 'Legenda / Detalhe', x: 10, y: 90, fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#000000', backgroundColor: '#FFFFFF' };
-    default:
-      return { ...base, content: 'Novo Texto', x: 10, y: 50, fontFamily: "'Inter', sans-serif", fontSize: 16, color: '#000000' };
+    case 'title': return { ...base, content: 'Título Principal', x: 10, y: 10, fontFamily: "'Playfair Display', serif", fontSize: 32, color: '#5A3A29', isBold: true };
+    case 'subtitle': return { ...base, content: 'Subtítulo Atrativo', x: 10, y: 25, fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: '#D4AF37' };
+    case 'body': return { ...base, content: 'Seu texto principal vai aqui. Clique para editar.', x: 10, y: 35, fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: '#5A3A29' };
+    case 'caption': return { ...base, content: 'Legenda / Detalhe', x: 10, y: 90, fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#000000', backgroundColor: '#FFFFFF' };
+    default: return { ...base, content: 'Novo Texto', x: 10, y: 50, fontFamily: "'Inter', sans-serif", fontSize: 16, color: '#000000' };
   }
 };
 
@@ -143,9 +111,7 @@ const createInitialSlide = (): Slide => ({
   id: Math.random().toString(36).substr(2, 9),
   textLayers: [createTextLayer('title'), createTextLayer('body')],
   backgroundColor: '#F7F3E8',
-  overlayEnabled: false,
-  overlayColor: '#000000',
-  overlayOpacity: 20,
+  overlayEnabled: false, overlayColor: '#000000', overlayOpacity: 20,
   imageUrl: '',
   imgBoxX: 0, imgBoxY: 0, imgBoxW: 100, imgBoxH: 50,
   imgZoom: 1, imgPanX: 50, imgPanY: 50,
@@ -165,145 +131,79 @@ interface SlideCanvasProps {
 }
 
 const SlideCanvas: React.FC<SlideCanvasProps> = ({ 
-  slide, 
-  scale = 1, 
-  isEditing = false, 
-  showSafeZone = false, 
-  selectedTextId,
-  onSelectText,
-  canvasRef,
-  onInteractionStart 
+  slide, scale = 1, isEditing = false, showSafeZone = false, selectedTextId, onSelectText, canvasRef, onInteractionStart 
 }) => {
-  
   const handleMouseDown = (type: string, id: string | null, e: React.MouseEvent) => {
     if (isEditing && onInteractionStart) {
-      e.preventDefault();
-      e.stopPropagation();
+      e.preventDefault(); e.stopPropagation();
       if (type === 'text' && id && onSelectText) onSelectText(id);
       onInteractionStart(type, id, e);
     }
   };
 
-  const renderImageLayer = () => (
-      <div style={{ position: 'absolute', width: '100%', height: '100%', overflow: 'hidden' }}>
-           <div 
-             style={{ 
-               position: 'relative', 
-               width: '100%', 
-               height: '100%', 
-               transform: `translate(${slide.imagePos.x * scale}px, ${slide.imagePos.y * scale}px) scale(${slide.imageScale})`, 
-               transformOrigin: 'center', 
-               backgroundImage: slide.imageUrl ? `url("${slide.imageUrl}")` : 'none', 
-               backgroundSize: 'cover', 
-               backgroundPosition: 'center', 
-               backgroundRepeat: 'no-repeat', 
-               cursor: isEditing ? 'move' : 'default', 
-               pointerEvents: isEditing ? 'auto' : 'none' 
-             }} 
-             onMouseDown={(e) => handleMouseDown('image_drag', null, e)}
-           >
-              {/* Handles da imagem */}
-           </div>
-      </div>
-  );
-
   return (
-    <div 
-      ref={canvasRef}
-      className="relative overflow-hidden shadow-2xl transition-all duration-300 flex flex-col select-none bg-white" 
+    <div ref={canvasRef} className="relative overflow-hidden shadow-2xl transition-all duration-300 flex flex-col select-none bg-white" 
       style={{ width: `${320 * scale}px`, height: `${400 * scale}px`, backgroundColor: slide.backgroundColor }}
       onMouseDown={() => isEditing && onSelectText && onSelectText('')} 
     >
-      {/* CAMADA DE IMAGEM */}
       {slide.imageUrl && (
-        <div
-            className={`absolute overflow-hidden group ${isEditing ? 'hover:outline hover:outline-2 hover:outline-purple-400 hover:outline-dashed' : ''}`}
-            style={{
-                left: `${slide.imgBoxX}%`,
-                top: `${slide.imgBoxY}%`,
-                width: `${slide.imgBoxW}%`,
-                height: `${slide.imgBoxH}%`,
-                zIndex: 1 
-            }}
+        <div className={`absolute overflow-hidden group ${isEditing ? 'hover:outline hover:outline-2 hover:outline-purple-400 hover:outline-dashed' : ''}`}
+            style={{ left: `${slide.imgBoxX}%`, top: `${slide.imgBoxY}%`, width: `${slide.imgBoxW}%`, height: `${slide.imgBoxH}%`, zIndex: 1 }}
             onMouseDown={(e) => handleMouseDown('img_box_move', null, e)}
         >
-             {/* Imagem Interna */}
-             <div 
-                style={{
-                    width: '100%',
-                    height: '100%',
-                    backgroundImage: `url("${slide.imageUrl}")`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: `${slide.imgPanX}% ${slide.imgPanY}%`,
-                    transform: `scale(${slide.imgZoom})`,
-                    pointerEvents: 'none'
-                }}
-             />
-
+             <img src={slide.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${slide.imgPanX}% ${slide.imgPanY}%`, transform: `scale(${slide.imgZoom})`, pointerEvents: 'none' }} />
              {isEditing && (
-                <div 
-                    onMouseDown={(e) => handleMouseDown('img_box_resize', null, e)}
-                    className="absolute bottom-0 right-0 w-6 h-6 bg-white border-2 border-purple-600 rounded-tl-lg cursor-nwse-resize flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20"
-                    title="Redimensionar Caixa da Imagem"
-                >
+                <div onMouseDown={(e) => handleMouseDown('img_box_resize', null, e)} className="absolute bottom-0 right-0 w-6 h-6 bg-white border-2 border-purple-600 rounded-tl-lg cursor-nwse-resize flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20" title="Redimensionar Caixa da Imagem">
                     <Crop size={12} className="text-purple-600"/>
                 </div>
              )}
         </div>
       )}
-
-      {/* Overlay */}
       {slide.overlayEnabled && <div className="absolute inset-0 pointer-events-none z-10" style={{ backgroundColor: slide.overlayColor, opacity: slide.overlayOpacity / 100 }} />}
-      
-      {/* Efeito Decorativo */}
       {isEditing && <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none z-10 mix-blend-overlay"></div>}
       
-      {/* CAMADAS DE TEXTO */}
-      {slide.textLayers.map((layer) => (
-        <div 
-            key={layer.id}
-            onMouseDown={(e) => handleMouseDown('text', layer.id, e)} 
-            className={`absolute z-20 cursor-move group ${isEditing && selectedTextId === layer.id ? 'outline outline-2 outline-cyan-400 outline-dashed rounded p-1 bg-cyan-50/10' : 'hover:outline hover:outline-1 hover:outline-cyan-400/50 hover:outline-dashed p-1'}`} 
-            style={{ 
-                left: `${layer.x}%`, 
-                top: `${layer.y}%`, 
-                width: `${layer.w}%`, 
-                textAlign: layer.align,
-                minWidth: '20px',
-                fontFamily: layer.fontFamily,
-                fontSize: `${layer.fontSize * scale}px`,
-                color: layer.color,
-                fontWeight: layer.isBold ? 'bold' : 'normal',
-                fontStyle: layer.isItalic ? 'italic' : 'normal',
-                textDecoration: layer.isUnderline ? 'underline' : 'none',
-                lineHeight: layer.lineHeight,
-                letterSpacing: `${layer.letterSpacing * scale}px`,
-                backgroundColor: layer.backgroundColor !== 'transparent' ? layer.backgroundColor : undefined,
-                padding: layer.backgroundColor !== 'transparent' ? '4px 8px' : '0', 
-                borderRadius: layer.backgroundColor !== 'transparent' ? '4px' : '0'
+      {/* Camada de Handle da Imagem (Para edição fácil) */}
+      {isEditing && slide.imageUrl && (
+        <div className="absolute inset-0 pointer-events-none z-10">
+          <div 
+            style={{
+              position: 'absolute',
+              width: '100%',
+              // AQUI ESTAVA O ERRO: Duplicidade de chaves removida
+              top: slide.template === 'image-bottom' ? '45%' : '0',
+              height: slide.template === 'split' ? '100%' : '55%',
+              transform: `translate(${slide.imagePos.x * scale}px, ${slide.imagePos.y * scale}px) scale(${slide.imageScale})`,
+              transformOrigin: 'center',
             }}
+          >
+             <div 
+                onMouseDown={(e) => handleMouseDown('image_resize', null, e)} 
+                className="absolute -bottom-2 -right-2 w-6 h-6 bg-white border-2 border-purple-500 rounded-full cursor-nwse-resize shadow-lg pointer-events-auto flex items-center justify-center hover:scale-110 transition-transform"
+                title="Redimensionar Imagem"
+             >
+                <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+             </div>
+             <div className="absolute inset-0 border border-purple-400/30 border-dashed pointer-events-none"></div>
+          </div>
+        </div>
+      )}
+
+      {slide.textLayers.map((layer) => (
+        <div key={layer.id} onMouseDown={(e) => handleMouseDown('text', layer.id, e)} 
+            className={`absolute z-20 cursor-move group ${isEditing && selectedTextId === layer.id ? 'outline outline-2 outline-cyan-400 outline-dashed rounded p-1 bg-cyan-50/10' : 'hover:outline hover:outline-1 hover:outline-cyan-400/50 hover:outline-dashed p-1'}`} 
+            style={{ left: `${layer.x}%`, top: `${layer.y}%`, width: `${layer.w}%`, textAlign: layer.align, minWidth: '20px', fontFamily: layer.fontFamily, fontSize: `${layer.fontSize * scale}px`, color: layer.color, fontWeight: layer.isBold ? 'bold' : 'normal', fontStyle: layer.isItalic ? 'italic' : 'normal', textDecoration: layer.isUnderline ? 'underline' : 'none', lineHeight: layer.lineHeight, letterSpacing: `${layer.letterSpacing * scale}px`, backgroundColor: layer.backgroundColor !== 'transparent' ? layer.backgroundColor : undefined, padding: layer.backgroundColor !== 'transparent' ? '4px 8px' : '0', borderRadius: layer.backgroundColor !== 'transparent' ? '4px' : '0' }}
         >
-            <p className="whitespace-pre-wrap pointer-events-none break-words">
-                {layer.content || "Digite algo..."}
-            </p>
-            
+            <p className="whitespace-pre-wrap pointer-events-none break-words">{layer.content || "Digite algo..."}</p>
             {isEditing && selectedTextId === layer.id && (
-                <div 
-                    onMouseDown={(e) => handleMouseDown('text_box_resize', layer.id, e)}
-                    className="absolute top-1/2 -right-2 w-3 h-6 bg-cyan-400 rounded-r cursor-ew-resize shadow-md z-30 pointer-events-auto flex items-center justify-center hover:scale-125 transition-transform"
-                    title="Ajustar Largura da Caixa"
-                >
-                </div>
+                <div onMouseDown={(e) => handleMouseDown('text_box_resize', layer.id, e)} className="absolute top-1/2 -right-2 w-3 h-6 bg-cyan-400 rounded-r cursor-ew-resize shadow-md z-30 pointer-events-auto flex items-center justify-center hover:scale-125 transition-transform" title="Ajustar Largura"></div>
             )}
         </div>
       ))}
       
       {showSafeZone && <div className="absolute inset-0 pointer-events-none z-40"><div className="absolute inset-[10%] border-2 border-dashed border-cyan-400/30 rounded-sm"></div></div>}
-      
       {isEditing && (
           <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1 z-30 pointer-events-none">
-           <div className="w-1.5 h-1.5 rounded-full bg-white/50"></div>
-           <div className="w-1.5 h-1.5 rounded-full bg-white/20"></div>
+           <div className="w-1.5 h-1.5 rounded-full bg-white/50"></div><div className="w-1.5 h-1.5 rounded-full bg-white/20"></div>
           </div>
       )}
     </div>
@@ -312,14 +212,31 @@ const SlideCanvas: React.FC<SlideCanvasProps> = ({
 
 // --- COMPONENTE PRINCIPAL ---
 export default function App() {
+  // STATES
   const [user, setUser] = useState<{ email: string } | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoginView, setIsLoginView] = useState(true);
   const [authError, setAuthError] = useState('');
+  
+  // Dados do Projeto Atual
+  const [currentProjectName, setCurrentProjectName] = useState('Meu Novo Carrossel');
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [slides, setSlides] = useState<Slide[]>([
+    {
+      ...createInitialSlide(),
+      textLayers: [
+        { ...createTextLayer('title'), content: 'Bem-vindo ao Image Laboratory' },
+        { ...createTextLayer('body'), content: 'Edite este slide ou adicione novos. Suas alterações serão salvas automaticamente.' }
+      ]
+    }
+  ]);
+  
+  // Lista de Projetos (Dashboard)
+  const [myProjects, setMyProjects] = useState<Project[]>([]);
 
-  const [slides, setSlides] = useState<Slide[]>([createInitialSlide()]);
+  // Editor States
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [viewMode, setViewMode] = useState<'single' | 'grid'>('single');
   const [showGuides, setShowGuides] = useState(true); 
@@ -327,96 +244,113 @@ export default function App() {
   const [isSaving, setIsSaving] = useState(false);
   const [customFontInput, setCustomFontInput] = useState(''); 
   const [saveMessage, setSaveMessage] = useState('');
-  
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
-
-  const [interaction, setInteraction] = useState<{
-    type: string;
-    id: string | null;
-    startX: number;
-    startY: number;
-    initialVal: any;
-  } | null>(null);
+  const [interaction, setInteraction] = useState<{ type: string; id: string | null; startX: number; startY: number; initialVal: any; } | null>(null);
+  const [view, setView] = useState<'auth' | 'dashboard' | 'editor'>('auth');
 
   const slideRef = useRef<HTMLDivElement>(null);
   const activeSlide = slides[activeSlideIndex];
   const activeTextLayer = activeSlide.textLayers.find(t => t.id === selectedTextId);
 
+  // --- INICIALIZAÇÃO ---
   useEffect(() => {
     const savedUser = localStorage.getItem('app_user');
-    if (savedUser) setUser(JSON.parse(savedUser));
-    setAuthLoading(false);
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+      setView('dashboard');
+      loadProjects();
+    } else {
+        setAuthLoading(false);
+    }
   }, []);
 
-  useEffect(() => {
-    if (user) {
-        const savedData = localStorage.getItem(`project_${user.email}`);
-        if (savedData) {
-            try { 
-              const parsed = JSON.parse(savedData);
-              const updatedSlides = parsed.map((s: any) => {
-                  if (!s.textLayers) { return createInitialSlide(); }
-                  if (s.imgBoxW === undefined) {
-                      s.imgBoxX = 0; s.imgBoxY = 0; s.imgBoxW = 100; s.imgBoxH = 50;
-                      s.imgZoom = 1; s.imgPanX = 50; s.imgPanY = 50;
-                  }
-                  return s;
-              });
-              setSlides(updatedSlides); 
-            } catch (e) { console.error("Erro dados"); }
-        }
-    }
-  }, [user]);
-
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthLoading(true);
-    setTimeout(() => {
-        const newUser = { email: email || "visitante@demo.com" };
-        localStorage.setItem('app_user', JSON.stringify(newUser));
-        setUser(newUser);
-        setAuthLoading(false);
-    }, 800);
+  // --- FUNÇÕES DE DASHBOARD / PROJETO ---
+  const loadProjects = () => {
+    const data = localStorage.getItem('my_projects');
+    if (data) setMyProjects(JSON.parse(data));
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('app_user');
-    setUser(null);
+  const createNewProject = () => {
+    const newId = Date.now().toString();
+    const newSlides = [createInitialSlide()];
+    setCurrentProjectId(newId);
+    setCurrentProjectName('Novo Carrossel');
+    setSlides(newSlides);
+    setActiveSlideIndex(0);
+    setView('editor');
+  };
+
+  const openProject = (project: Project) => {
+    setCurrentProjectId(project.id);
+    setCurrentProjectName(project.name);
+    setSlides(project.slides);
+    setActiveSlideIndex(0);
+    setView('editor');
+  };
+
+  const deleteProject = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm('Tem certeza que deseja excluir este carrossel?')) {
+      const updated = myProjects.filter(p => p.id !== id);
+      setMyProjects(updated);
+      localStorage.setItem('my_projects', JSON.stringify(updated));
+    }
   };
 
   const handleSaveProject = async () => {
     if (!user) return;
     setIsSaving(true);
+    
     setTimeout(() => {
-        localStorage.setItem(`project_${user.email}`, JSON.stringify(slides));
+        const newProject: Project = {
+            id: currentProjectId || Date.now().toString(),
+            name: currentProjectName,
+            lastModified: Date.now(),
+            slides: slides
+        };
+
+        let updatedProjects = [...myProjects];
+        const existingIndex = updatedProjects.findIndex(p => p.id === newProject.id);
+        
+        if (existingIndex >= 0) {
+            updatedProjects[existingIndex] = newProject;
+        } else {
+            updatedProjects.push(newProject);
+        }
+
+        setMyProjects(updatedProjects);
+        localStorage.setItem('my_projects', JSON.stringify(updatedProjects));
+        
+        if (!currentProjectId) setCurrentProjectId(newProject.id);
+
         setIsSaving(false);
         setSaveMessage('Salvo!');
         setTimeout(() => setSaveMessage(''), 2000);
     }, 800);
   };
 
-  const addSlide = () => {
-    const newSlide = createInitialSlide();
-    newSlide.backgroundColor = activeSlide.backgroundColor; // Herdar cor
-    setSlides([...slides, newSlide]);
-    setActiveSlideIndex(slides.length);
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const newUser = { email: email || "visitante@demo.com" };
+    localStorage.setItem('app_user', JSON.stringify(newUser));
+    setUser(newUser);
+    setView('dashboard');
+    loadProjects();
   };
 
-  // NOVA FUNÇÃO: DUPLICAR SLIDE
-  const duplicateSlide = (index: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const slideToCopy = slides[index];
-    const newSlide = {
-        ...slideToCopy,
-        id: Math.random().toString(36).substr(2, 9),
-        // Gerar novos IDs para os textos para não bugar a seleção
-        textLayers: slideToCopy.textLayers.map(layer => ({ ...layer, id: Math.random().toString(36).substr(2, 9) }))
-    };
-    
-    const newSlides = [...slides];
-    newSlides.splice(index + 1, 0, newSlide);
-    setSlides(newSlides);
-    setActiveSlideIndex(index + 1);
+  const handleLogout = () => {
+    localStorage.removeItem('app_user');
+    setUser(null);
+    setView('auth');
+  };
+
+  // --- FUNÇÕES DO EDITOR ---
+  const addSlide = () => {
+    const newSlide = createInitialSlide();
+    // Herdar cores do anterior
+    newSlide.backgroundColor = activeSlide.backgroundColor;
+    setSlides([...slides, newSlide]);
+    setActiveSlideIndex(slides.length);
   };
 
   const removeSlide = (index: number) => {
@@ -527,7 +461,7 @@ export default function App() {
                     height: 1350, 
                 });
                 const link = document.createElement('a');
-                link.download = `carrossel-${i + 1}.png`;
+                link.download = `${currentProjectName.replace(/\s+/g, '-').toLowerCase()}-${i + 1}.png`;
                 link.href = canvas.toDataURL('image/png', 1.0); 
                 link.click();
             }
@@ -549,7 +483,7 @@ export default function App() {
       const dX = e.clientX - interaction.startX;
       const dY = e.clientY - interaction.startY;
 
-      // 1. MOVER TEXTO (Batch update)
+      // 1. MOVER TEXTO
       if (interaction.type === 'text' && interaction.id) {
         const init = interaction.initialVal as Position;
         const newPos = { 
@@ -573,7 +507,7 @@ export default function App() {
           const newW = Math.max(10, Math.min(100, initW + (dX * scaleX)));
           updateTextLayer(interaction.id, 'w', newW);
       }
-      // 3. MOVER CAIXA IMAGEM (Batch update)
+      // 3. MOVER CAIXA IMAGEM
       else if (interaction.type === 'img_box_move') {
           const init = interaction.initialVal as { x: number, y: number };
           const newPos = { 
@@ -584,7 +518,7 @@ export default function App() {
           newSlides[activeSlideIndex] = { ...newSlides[activeSlideIndex], imgBoxX: newPos.x, imgBoxY: newPos.y };
           setSlides(newSlides);
       }
-      // 4. RESIZE CAIXA IMAGEM (Batch update)
+      // 4. RESIZE CAIXA IMAGEM
       else if (interaction.type === 'img_box_resize') {
           const init = interaction.initialVal as { w: number, h: number };
           const newW = Math.max(10, init.w + (dX * scaleX));
@@ -642,10 +576,19 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-800">
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Inter:wght@400;700;900&family=Lora:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;700;900&family=Playfair+Display:wght@400;700;900&family=Roboto:wght@400;700;900&display=swap');`}</style>
-      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-50 shadow-sm">
-        <div className="flex items-center gap-2"><div className="bg-gradient-to-tr from-purple-500 to-pink-500 text-white p-2 rounded-lg"><Sparkles size={20} /></div><h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600 hidden sm:block">Image Laboratory</h1></div>
+      <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50 shadow-sm">
+        <div className="flex items-center gap-4">
+            <button onClick={() => setView('dashboard')} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500" title="Voltar ao Dashboard"><Home size={20}/></button>
+            <div className="h-6 w-px bg-slate-200"></div>
+            <input 
+                type="text" 
+                value={currentProjectName} 
+                onChange={(e) => setCurrentProjectName(e.target.value)}
+                className="font-bold text-lg text-slate-800 bg-transparent outline-none focus:bg-slate-50 px-2 rounded"
+            />
+        </div>
+        
         <div className="flex items-center gap-2">
-          <div className="hidden md:flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 mr-2"><UserIcon size={14} className="text-slate-400" /><span className="text-xs text-slate-600 max-w-[100px] truncate">{user.email}</span></div>
           <div className="flex bg-slate-100 p-1 rounded-lg">
             <button onClick={() => setShowGuides(!showGuides)} className={`p-2 rounded-md ${showGuides ? 'bg-cyan-100 text-cyan-700' : 'text-slate-400'}`}><Ruler size={18} /></button>
             <div className="w-px bg-slate-200 mx-1"></div>
@@ -707,8 +650,8 @@ export default function App() {
                                     <button onClick={() => updateTextLayer(activeTextLayer.id, 'align', 'right')} className={`p-1.5 hover:bg-slate-50 rounded-r ${activeTextLayer.align === 'right' ? 'text-purple-600 bg-purple-50' : 'text-slate-500'}`}><AlignRight size={14}/></button>
                                 </div>
                             </div>
-
-                            <div className="grid grid-cols-2 gap-2">
+                            {/* Resto dos controles de texto... */}
+                             <div className="grid grid-cols-2 gap-2">
                                 <div className="space-y-1">
                                     <span className="text-[10px] text-slate-400">Tamanho</span>
                                     <div className="flex items-center bg-white border border-slate-200 rounded-lg">
@@ -724,8 +667,7 @@ export default function App() {
                                     </select>
                                 </div>
                             </div>
-
-                            {/* CONTROLES DE ESPAÇAMENTO */}
+                            {/* ESPAÇAMENTO */}
                             <div className="bg-slate-100/50 p-2 rounded-lg border border-slate-200 space-y-2">
                                 <div className="flex items-center justify-between">
                                     <span className="text-[10px] text-slate-500 flex items-center gap-1"><ArrowUpDown size={10}/> Altura Linha</span>
@@ -791,22 +733,7 @@ export default function App() {
               </div>
             ) : (
               <div className="flex items-center h-full gap-4 overflow-x-auto px-10 pb-4">
-                {slides.map((slide, idx) => (
-                  <div key={slide.id} className="flex-shrink-0 group relative hover:z-10 transition-transform hover:-translate-y-2">
-                    <SlideCanvas slide={slide} scale={0.8} isEditing={false} showSafeZone={false} />
-                    {/* BOTÃO DUPLICAR SLIDE (VISUAL NO GRID) */}
-                    <div className="absolute top-2 right-12 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                         <button 
-                            onClick={(e) => duplicateSlide(idx, e)}
-                            className="p-2 bg-white text-purple-600 rounded-lg shadow hover:bg-purple-50"
-                            title="Duplicar Slide"
-                         >
-                            <Copy size={16} />
-                         </button>
-                    </div>
-                    <div className="absolute -bottom-8 left-0 right-0 text-center opacity-0 group-hover:opacity-100 transition-opacity"><span className="bg-slate-800 text-white text-xs px-2 py-1 rounded">Slide {idx + 1}</span></div>
-                  </div>
-                ))}
+                {slides.map((slide, idx) => (<div key={slide.id} className="flex-shrink-0 group relative hover:z-10 transition-transform hover:-translate-y-2"><SlideCanvas slide={slide} scale={0.8} isEditing={false} showSafeZone={false} /><div className="absolute -bottom-8 left-0 right-0 text-center opacity-0 group-hover:opacity-100 transition-opacity"><span className="bg-slate-800 text-white text-xs px-2 py-1 rounded">Slide {idx + 1}</span></div></div>))}
               </div>
             )}
           </div>
@@ -817,14 +744,6 @@ export default function App() {
                 <div key={slide.id} className={`relative group flex-shrink-0 cursor-pointer transition-all ${idx === activeSlideIndex ? 'ring-2 ring-purple-500 ring-offset-2' : 'opacity-60 hover:opacity-100'}`} onClick={() => setActiveSlideIndex(idx)}>
                   <div className="w-16 h-20 bg-slate-200 rounded overflow-hidden pointer-events-none relative"><div className="absolute inset-0" style={{ backgroundColor: slide.backgroundColor }}></div>{slide.imageUrl && ( <img src={slide.imageUrl} className="absolute inset-0 w-full h-full object-cover opacity-50" /> )}</div>
                   <button onClick={(e) => { e.stopPropagation(); removeSlide(idx); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-600" disabled={slides.length === 1}><Trash2 size={10} /></button>
-                   {/* BOTÃO DUPLICAR SLIDE (VISUAL NA BARRA) */}
-                   <button 
-                        onClick={(e) => duplicateSlide(idx, e)}
-                        className="absolute -top-2 -right-8 bg-purple-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-purple-700"
-                        title="Duplicar"
-                   >
-                        <Copy size={10} />
-                   </button>
                   <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] text-center py-0.5">{idx + 1}</div>
                 </div>
               ))}
