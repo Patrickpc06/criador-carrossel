@@ -162,32 +162,6 @@ const SlideCanvas: React.FC<SlideCanvasProps> = ({
       {slide.overlayEnabled && <div className="absolute inset-0 pointer-events-none z-10" style={{ backgroundColor: slide.overlayColor, opacity: slide.overlayOpacity / 100 }} />}
       {isEditing && <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none z-10 mix-blend-overlay"></div>}
       
-      {/* Camada de Handle da Imagem (Para edição fácil) */}
-      {isEditing && slide.imageUrl && (
-        <div className="absolute inset-0 pointer-events-none z-10">
-          <div 
-            style={{
-              position: 'absolute',
-              width: '100%',
-              // AQUI ESTAVA O ERRO: Duplicidade de chaves removida
-              top: slide.template === 'image-bottom' ? '45%' : '0',
-              height: slide.template === 'split' ? '100%' : '55%',
-              transform: `translate(${slide.imagePos.x * scale}px, ${slide.imagePos.y * scale}px) scale(${slide.imageScale})`,
-              transformOrigin: 'center',
-            }}
-          >
-             <div 
-                onMouseDown={(e) => handleMouseDown('image_resize', null, e)} 
-                className="absolute -bottom-2 -right-2 w-6 h-6 bg-white border-2 border-purple-500 rounded-full cursor-nwse-resize shadow-lg pointer-events-auto flex items-center justify-center hover:scale-110 transition-transform"
-                title="Redimensionar Imagem"
-             >
-                <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
-             </div>
-             <div className="absolute inset-0 border border-purple-400/30 border-dashed pointer-events-none"></div>
-          </div>
-        </div>
-      )}
-
       {slide.textLayers.map((layer) => (
         <div key={layer.id} onMouseDown={(e) => handleMouseDown('text', layer.id, e)} 
             className={`absolute z-20 cursor-move group ${isEditing && selectedTextId === layer.id ? 'outline outline-2 outline-cyan-400 outline-dashed rounded p-1 bg-cyan-50/10' : 'hover:outline hover:outline-1 hover:outline-cyan-400/50 hover:outline-dashed p-1'}`} 
@@ -212,7 +186,6 @@ const SlideCanvas: React.FC<SlideCanvasProps> = ({
 
 // --- COMPONENTE PRINCIPAL ---
 export default function App() {
-  // STATES
   const [user, setUser] = useState<{ email: string } | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [email, setEmail] = useState('');
@@ -220,8 +193,7 @@ export default function App() {
   const [isLoginView, setIsLoginView] = useState(true);
   const [authError, setAuthError] = useState('');
   
-  // Dados do Projeto Atual
-  const [currentProjectName, setCurrentProjectName] = useState('Meu Novo Carrossel');
+  const [currentProjectName, setCurrentProjectName] = useState('Carrossel');
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [slides, setSlides] = useState<Slide[]>([
     {
@@ -233,10 +205,7 @@ export default function App() {
     }
   ]);
   
-  // Lista de Projetos (Dashboard)
   const [myProjects, setMyProjects] = useState<Project[]>([]);
-
-  // Editor States
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [viewMode, setViewMode] = useState<'single' | 'grid'>('single');
   const [showGuides, setShowGuides] = useState(true); 
@@ -252,7 +221,6 @@ export default function App() {
   const activeSlide = slides[activeSlideIndex];
   const activeTextLayer = activeSlide.textLayers.find(t => t.id === selectedTextId);
 
-  // --- INICIALIZAÇÃO ---
   useEffect(() => {
     const savedUser = localStorage.getItem('app_user');
     if (savedUser) {
@@ -264,7 +232,6 @@ export default function App() {
     }
   }, []);
 
-  // --- FUNÇÕES DE DASHBOARD / PROJETO ---
   const loadProjects = () => {
     const data = localStorage.getItem('my_projects');
     if (data) setMyProjects(JSON.parse(data));
@@ -344,10 +311,8 @@ export default function App() {
     setView('auth');
   };
 
-  // --- FUNÇÕES DO EDITOR ---
   const addSlide = () => {
     const newSlide = createInitialSlide();
-    // Herdar cores do anterior
     newSlide.backgroundColor = activeSlide.backgroundColor;
     setSlides([...slides, newSlide]);
     setActiveSlideIndex(slides.length);
@@ -483,43 +448,21 @@ export default function App() {
       const dX = e.clientX - interaction.startX;
       const dY = e.clientY - interaction.startY;
 
-      // 1. MOVER TEXTO
       if (interaction.type === 'text' && interaction.id) {
         const init = interaction.initialVal as Position;
-        const newPos = { 
-            x: Math.max(0, Math.min(100, init.x + (dX * scaleX))), 
-            y: Math.max(0, Math.min(100, init.y + (dY * scaleY))) 
-        };
-        const newSlides = [...slides];
-        const layerIndex = newSlides[activeSlideIndex].textLayers.findIndex(t => t.id === interaction.id);
-        if (layerIndex !== -1) {
-            newSlides[activeSlideIndex].textLayers[layerIndex] = {
-                ...newSlides[activeSlideIndex].textLayers[layerIndex],
-                x: newPos.x,
-                y: newPos.y
-            };
-            setSlides(newSlides);
-        }
-      } 
-      // 2. RESIZE TEXT WIDTH
-      else if (interaction.type === 'text_box_resize' && interaction.id) {
+        const newPos = { x: Math.max(0, Math.min(100, init.x + (dX * scaleX))), y: Math.max(0, Math.min(100, init.y + (dY * scaleY))) };
+        updateTextLayer(interaction.id, 'x', newPos.x); updateTextLayer(interaction.id, 'y', newPos.y);
+      } else if (interaction.type === 'text_box_resize' && interaction.id) {
           const initW = interaction.initialVal as number;
           const newW = Math.max(10, Math.min(100, initW + (dX * scaleX)));
           updateTextLayer(interaction.id, 'w', newW);
-      }
-      // 3. MOVER CAIXA IMAGEM
-      else if (interaction.type === 'img_box_move') {
+      } else if (interaction.type === 'img_box_move') {
           const init = interaction.initialVal as { x: number, y: number };
-          const newPos = { 
-              x: Math.max(-50, Math.min(150, init.x + (dX * scaleX))), 
-              y: Math.max(-50, Math.min(150, init.y + (dY * scaleY))) 
-          };
+          const newPos = { x: Math.max(-50, Math.min(150, init.x + (dX * scaleX))), y: Math.max(-50, Math.min(150, init.y + (dY * scaleY))) };
           const newSlides = [...slides];
           newSlides[activeSlideIndex] = { ...newSlides[activeSlideIndex], imgBoxX: newPos.x, imgBoxY: newPos.y };
           setSlides(newSlides);
-      }
-      // 4. RESIZE CAIXA IMAGEM
-      else if (interaction.type === 'img_box_resize') {
+      } else if (interaction.type === 'img_box_resize') {
           const init = interaction.initialVal as { w: number, h: number };
           const newW = Math.max(10, init.w + (dX * scaleX));
           const newH = Math.max(10, init.h + (dY * scaleY));
@@ -535,22 +478,32 @@ export default function App() {
 
   const onInteractionStart = (type: string, id: string | null, e: React.MouseEvent) => {
       let initialVal;
-      if (type === 'text' && id) {
-          const layer = activeSlide.textLayers.find(t => t.id === id);
-          initialVal = { x: layer?.x || 0, y: layer?.y || 0 };
-      }
-      else if (type === 'text_box_resize' && id) {
-          const layer = activeSlide.textLayers.find(t => t.id === id);
-          initialVal = layer?.w || 80;
-      }
-      else if (type === 'img_box_move') {
-          initialVal = { x: activeSlide.imgBoxX, y: activeSlide.imgBoxY };
-      }
-      else if (type === 'img_box_resize') {
-          initialVal = { w: activeSlide.imgBoxW, h: activeSlide.imgBoxH };
-      }
-
+      if (type === 'text' && id) { const layer = activeSlide.textLayers.find(t => t.id === id); initialVal = { x: layer?.x || 0, y: layer?.y || 0 }; }
+      else if (type === 'text_box_resize' && id) { const layer = activeSlide.textLayers.find(t => t.id === id); initialVal = layer?.w || 80; }
+      else if (type === 'img_box_move') { initialVal = { x: activeSlide.imgBoxX, y: activeSlide.imgBoxY }; }
+      else if (type === 'img_box_resize') { initialVal = { w: activeSlide.imgBoxW, h: activeSlide.imgBoxH }; }
       setInteraction({ type, id, startX: e.clientX, startY: e.clientY, initialVal });
+  };
+
+  const getSaveButtonContent = () => {
+    if (isSaving) return <Loader2 size={16} className="animate-spin" />;
+    if (saveMessage) return <span className="flex items-center gap-1"><CheckCircle2 size={16}/> Salvo</span>;
+    return (
+        <React.Fragment>
+            <Save size={16} />
+            <span className="hidden sm:inline">Salvar</span>
+        </React.Fragment>
+    );
+  };
+  
+  const getExportButtonContent = () => {
+      if (isExporting) return <Loader2 size={16} className="animate-spin" />;
+      return (
+          <React.Fragment>
+              <Download size={16} />
+              <span className="hidden sm:inline">Exportar</span>
+          </React.Fragment>
+      );
   };
 
   if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-100"><Loader2 className="animate-spin text-purple-600" size={32}/></div>;
@@ -596,10 +549,10 @@ export default function App() {
             <button onClick={() => setViewMode('grid')} className={`p-2 rounded-md ${viewMode === 'grid' ? 'bg-white shadow text-purple-600' : 'text-slate-500'}`}><MoveHorizontal size={18} /></button>
           </div>
           <button onClick={handleSaveProject} disabled={isSaving} className={`flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium ${isSaving ? 'opacity-70' : ''}`}>
-            {isSaving ? <Loader2 size={16} className="animate-spin" /> : saveMessage ? <span className="flex items-center gap-1"><CheckCircle2 size={16}/> Salvo</span> : <><Save size={16} /><span className="hidden sm:inline">Salvar</span></>}
+            {getSaveButtonContent()}
           </button>
           <button onClick={handleExport} disabled={isExporting} className={`flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors text-sm font-medium ${isExporting ? 'opacity-70 cursor-wait' : ''}`}>
-            {isExporting ? <Loader2 size={16} className="animate-spin" /> : <><Download size={16} /><span className="hidden sm:inline">Exportar</span></>}
+            {getExportButtonContent()}
           </button>
           <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors ml-1"><LogOut size={18} /></button>
         </div>
