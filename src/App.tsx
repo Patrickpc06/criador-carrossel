@@ -12,7 +12,6 @@ import {
   Smartphone,
   MoveHorizontal,
   LayoutTemplate,
-  Move,
   AlignLeft,
   AlignCenter,
   AlignRight,
@@ -29,9 +28,6 @@ import {
   Save,
   LogOut,
   User as UserIcon,
-  Lock,
-  Mail,
-  AlertCircle,
   CheckCircle2,
   Sparkles,
   Bold,
@@ -126,7 +122,7 @@ interface SlideCanvasProps {
   showSafeZone?: boolean;
   selectedTextId?: string | null;
   onSelectText?: (id: string) => void;
-  canvasRef?: React.RefObject<HTMLDivElement>;
+  canvasRef?: React.RefObject<HTMLDivElement | null>; // Ajuste de tipo para evitar erro TS2322
   onInteractionStart?: (type: string, id: string | null, e: React.MouseEvent) => void;
 }
 
@@ -151,7 +147,7 @@ const SlideCanvas: React.FC<SlideCanvasProps> = ({
             style={{ left: `${slide.imgBoxX}%`, top: `${slide.imgBoxY}%`, width: `${slide.imgBoxW}%`, height: `${slide.imgBoxH}%`, zIndex: 1 }}
             onMouseDown={(e) => handleMouseDown('img_box_move', null, e)}
         >
-             <img src={slide.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${slide.imgPanX}% ${slide.imgPanY}%`, transform: `scale(${slide.imgZoom})`, pointerEvents: 'none' }} />
+             <img src={slide.imageUrl} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${slide.imgPanX}% ${slide.imgPanY}%`, transform: `scale(${slide.imgZoom})`, pointerEvents: 'none' }} alt="Slide" />
              {isEditing && (
                 <div onMouseDown={(e) => handleMouseDown('img_box_resize', null, e)} className="absolute bottom-0 right-0 w-6 h-6 bg-white border-2 border-purple-600 rounded-tl-lg cursor-nwse-resize flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20" title="Redimensionar Caixa da Imagem">
                     <Crop size={12} className="text-purple-600"/>
@@ -189,9 +185,6 @@ export default function App() {
   const [user, setUser] = useState<{ email: string } | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoginView, setIsLoginView] = useState(true);
-  const [authError, setAuthError] = useState('');
   
   const [currentProjectName, setCurrentProjectName] = useState('Carrossel');
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
@@ -399,7 +392,7 @@ export default function App() {
       const script = document.createElement('script');
       script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
       script.onload = () => resolve();
-      script.onerror = () => reject(new Error('Erro ao carregar lib'));
+      script.onerror = () => reject(new Error('Erro ao carregar html2canvas'));
       document.head.appendChild(script);
     });
   };
@@ -432,7 +425,7 @@ export default function App() {
             }
         }
     } catch (error) {
-        alert("Erro ao exportar.");
+        console.error("Erro na exportação", error);
     } finally {
         setIsExporting(false);
         setSelectedTextId(previousSelection); 
@@ -508,7 +501,7 @@ export default function App() {
 
   if (authLoading) return <div className="min-h-screen flex items-center justify-center bg-slate-100"><Loader2 className="animate-spin text-purple-600" size={32}/></div>;
 
-  if (!user) {
+  if (view === 'auth') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-purple-50 p-4 font-sans">
         <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
@@ -526,6 +519,62 @@ export default function App() {
     );
   }
 
+  if (view === 'dashboard') {
+    return (
+      <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
+        <header className="bg-white border-b border-slate-200 px-8 py-4 flex justify-between items-center sticky top-0 z-10">
+           <div className="flex items-center gap-2"><div className="bg-gradient-to-tr from-purple-500 to-pink-500 text-white p-2 rounded-lg"><Sparkles size={20} /></div><h1 className="text-xl font-bold text-slate-800">Dashboard</h1></div>
+           <div className="flex items-center gap-4">
+             <div className="text-sm text-slate-500">Olá, <strong>{user?.email}</strong></div>
+             <button onClick={handleLogout} className="p-2 hover:bg-slate-100 rounded-lg"><LogOut size={18}/></button>
+           </div>
+        </header>
+
+        <main className="max-w-6xl mx-auto p-8">
+            <div className="flex justify-between items-end mb-8">
+                <div>
+                    <h2 className="text-3xl font-bold text-slate-900">Seus Projetos</h2>
+                    <p className="text-slate-500 mt-1">Gerencie seus carrosséis salvos.</p>
+                </div>
+                <button onClick={createNewProject} className="flex items-center gap-2 bg-purple-600 text-white px-5 py-3 rounded-xl hover:bg-purple-700 shadow-lg shadow-purple-200 transition-all font-medium">
+                    <Plus size={20} /> Criar Novo Carrossel
+                </button>
+            </div>
+
+            {myProjects.length === 0 ? (
+                <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-300">
+                    <div className="inline-flex bg-slate-100 p-4 rounded-full mb-4 text-slate-400"><FolderOpen size={32} /></div>
+                    <h3 className="text-lg font-medium text-slate-600">Nenhum projeto ainda</h3>
+                    <p className="text-slate-400 text-sm mt-1">Clique no botão acima para começar!</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {myProjects.map(proj => (
+                        <div key={proj.id} onClick={() => openProject(proj)} className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all cursor-pointer group relative">
+                            <div className="h-40 bg-slate-100 flex items-center justify-center relative">
+                                <div className="w-20 h-28 shadow-sm scale-75 origin-center" style={{ backgroundColor: proj.slides[0].backgroundColor }}></div>
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
+                            </div>
+                            <div className="p-4">
+                                <h3 className="font-bold text-slate-800">{proj.name}</h3>
+                                <p className="text-xs text-slate-400 mt-1">Atualizado em {new Date(proj.lastModified).toLocaleDateString()}</p>
+                            </div>
+                            <button 
+                                onClick={(e) => deleteProject(proj.id, e)}
+                                className="absolute top-2 right-2 p-2 bg-white text-red-500 rounded-lg shadow opacity-0 group-hover:opacity-100 hover:bg-red-50 transition-all"
+                            >
+                                <Trash2 size={16}/>
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </main>
+      </div>
+    );
+  }
+
+  // --- VIEW: EDITOR ---
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-800">
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Inter:wght@400;700;900&family=Lora:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;700;900&family=Playfair+Display:wght@400;700;900&family=Roboto:wght@400;700;900&display=swap');`}</style>
@@ -603,7 +652,6 @@ export default function App() {
                                     <button onClick={() => updateTextLayer(activeTextLayer.id, 'align', 'right')} className={`p-1.5 hover:bg-slate-50 rounded-r ${activeTextLayer.align === 'right' ? 'text-purple-600 bg-purple-50' : 'text-slate-500'}`}><AlignRight size={14}/></button>
                                 </div>
                             </div>
-                            {/* Resto dos controles de texto... */}
                              <div className="grid grid-cols-2 gap-2">
                                 <div className="space-y-1">
                                     <span className="text-[10px] text-slate-400">Tamanho</span>
@@ -620,7 +668,6 @@ export default function App() {
                                     </select>
                                 </div>
                             </div>
-                            {/* ESPAÇAMENTO */}
                             <div className="bg-slate-100/50 p-2 rounded-lg border border-slate-200 space-y-2">
                                 <div className="flex items-center justify-between">
                                     <span className="text-[10px] text-slate-500 flex items-center gap-1"><ArrowUpDown size={10}/> Altura Linha</span>
@@ -695,7 +742,7 @@ export default function App() {
             <div className="h-32 bg-white border-t border-slate-200 flex items-center px-4 gap-4 overflow-x-auto z-10">
               {slides.map((slide, idx) => (
                 <div key={slide.id} className={`relative group flex-shrink-0 cursor-pointer transition-all ${idx === activeSlideIndex ? 'ring-2 ring-purple-500 ring-offset-2' : 'opacity-60 hover:opacity-100'}`} onClick={() => setActiveSlideIndex(idx)}>
-                  <div className="w-16 h-20 bg-slate-200 rounded overflow-hidden pointer-events-none relative"><div className="absolute inset-0" style={{ backgroundColor: slide.backgroundColor }}></div>{slide.imageUrl && ( <img src={slide.imageUrl} className="absolute inset-0 w-full h-full object-cover opacity-50" /> )}</div>
+                  <div className="w-16 h-20 bg-slate-200 rounded overflow-hidden pointer-events-none relative"><div className="absolute inset-0" style={{ backgroundColor: slide.backgroundColor }}></div>{slide.imageUrl && ( <img src={slide.imageUrl} className="absolute inset-0 w-full h-full object-cover opacity-50" alt="Slide Preview" /> )}</div>
                   <button onClick={(e) => { e.stopPropagation(); removeSlide(idx); }} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-600" disabled={slides.length === 1}><Trash2 size={10} /></button>
                   <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] text-center py-0.5">{idx + 1}</div>
                 </div>
