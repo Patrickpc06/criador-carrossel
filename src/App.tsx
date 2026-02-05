@@ -199,28 +199,29 @@ export default function App() {
   const activeSlide = slides[activeSlideIndex];
   const activeTextLayer = activeSlide.textLayers.find(t => t.id === selectedTextId);
 
-  // --- INICIALIZAÇÃO ---
+  // --- INICIALIZAÇÃO SEGURA ---
   useEffect(() => {
-    const savedUser = localStorage.getItem('app_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-      setView('dashboard');
-      loadProjects();
-    }
-    // Garante que o loading pare, seja encontrando usuário ou não
-    setAuthLoading(false);
-  }, []);
-
-  const loadProjects = () => {
-    const data = localStorage.getItem('my_projects');
-    if (data) {
-        try {
-            setMyProjects(JSON.parse(data));
-        } catch (e) {
-            console.error("Erro ao carregar projetos", e);
+    try {
+      const savedUser = localStorage.getItem('app_user');
+      if (savedUser) {
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
+        setView('dashboard');
+        
+        // Carregar projetos se existirem
+        const data = localStorage.getItem('my_projects');
+        if (data) {
+          setMyProjects(JSON.parse(data));
         }
+      }
+    } catch (e) {
+      console.error("Erro na inicialização:", e);
+      localStorage.removeItem('app_user'); // Limpa dados corrompidos
+    } finally {
+      // GARANTE que o loading pare sempre
+      setAuthLoading(false);
     }
-  };
+  }, []);
 
   const createNewProject = () => {
     const newId = Date.now().toString();
@@ -249,34 +250,38 @@ export default function App() {
   const handleSaveProject = () => {
     if (!user) return;
     setIsSaving(true);
+    setSaveMessage('');
     
-    // Simular pequeno delay para feedback visual
     setTimeout(() => {
-        const newProject: Project = {
-            id: currentProjectId || Date.now().toString(),
-            name: currentProjectName,
-            lastModified: Date.now(),
-            slides: slides
-        };
+        try {
+            const newProject: Project = {
+                id: currentProjectId || Date.now().toString(),
+                name: currentProjectName,
+                lastModified: Date.now(),
+                slides: slides
+            };
 
-        let updatedProjects = [...myProjects];
-        const existingIndex = updatedProjects.findIndex(p => p.id === newProject.id);
-        
-        if (existingIndex >= 0) {
-            updatedProjects[existingIndex] = newProject;
-        } else {
-            updatedProjects.push(newProject);
+            let updatedProjects = [...myProjects];
+            const existingIndex = updatedProjects.findIndex(p => p.id === newProject.id);
+            
+            if (existingIndex >= 0) {
+                updatedProjects[existingIndex] = newProject;
+            } else {
+                updatedProjects.push(newProject);
+            }
+
+            setMyProjects(updatedProjects);
+            localStorage.setItem('my_projects', JSON.stringify(updatedProjects));
+            
+            if (!currentProjectId) setCurrentProjectId(newProject.id);
+            setSaveMessage('Salvo!');
+        } catch (e) {
+            setSaveMessage('Erro ao salvar');
+        } finally {
+            setIsSaving(false);
+            setTimeout(() => setSaveMessage(''), 2000);
         }
-
-        setMyProjects(updatedProjects);
-        localStorage.setItem('my_projects', JSON.stringify(updatedProjects));
-        
-        if (!currentProjectId) setCurrentProjectId(newProject.id);
-
-        setIsSaving(false);
-        setSaveMessage('Salvo!');
-        setTimeout(() => setSaveMessage(''), 2000);
-    }, 500);
+    }, 400);
   };
 
   const handleAuth = (e: React.FormEvent) => {
@@ -285,7 +290,10 @@ export default function App() {
     localStorage.setItem('app_user', JSON.stringify(newUser));
     setUser(newUser);
     setView('dashboard');
-    loadProjects();
+    
+    // Carregar projetos ao entrar
+    const data = localStorage.getItem('my_projects');
+    if (data) setMyProjects(JSON.parse(data));
   };
 
   const handleLogout = () => {
@@ -305,10 +313,14 @@ export default function App() {
   const duplicateSlide = (index: number, e: React.MouseEvent) => {
     e.stopPropagation();
     const slideToCopy = slides[index];
+    // Cópia profunda para evitar referências ao original
     const newSlide = {
-        ...JSON.parse(JSON.stringify(slideToCopy)), // Cópia profunda
+        ...JSON.parse(JSON.stringify(slideToCopy)),
         id: Math.random().toString(36).substr(2, 9),
-        textLayers: slideToCopy.textLayers.map(layer => ({ ...layer, id: Math.random().toString(36).substr(2, 9) }))
+        textLayers: slideToCopy.textLayers.map(layer => ({ 
+          ...layer, 
+          id: Math.random().toString(36).substr(2, 9) 
+        }))
     };
     const newSlides = [...slides];
     newSlides.splice(index + 1, 0, newSlide);
@@ -427,8 +439,9 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
         <Loader2 className="animate-spin text-purple-600" size={48} />
+        <p className="text-slate-400 font-medium animate-pulse text-sm uppercase tracking-widest">Iniciando Laboratório...</p>
       </div>
     );
   }
@@ -501,7 +514,7 @@ export default function App() {
             <button onClick={() => setViewMode('single')} className={`p-2 rounded-md ${viewMode === 'single' ? 'bg-white shadow text-purple-600' : 'text-slate-500'}`}><Smartphone size={18} /></button>
             <button onClick={() => setViewMode('grid')} className={`p-2 rounded-md ${viewMode === 'grid' ? 'bg-white shadow text-purple-600' : 'text-slate-500'}`}><MoveHorizontal size={18} /></button>
           </div>
-          <button onClick={handleSaveProject} disabled={isSaving} className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-all text-sm font-medium">
+          <button onClick={handleSaveProject} disabled={isSaving} className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-all text-sm font-medium min-w-[100px] justify-center">
             {isSaving ? <Loader2 size={16} className="animate-spin" /> : saveMessage ? <><CheckCircle2 size={16}/> {saveMessage}</> : <><Save size={16} /> Salvar</>}
           </button>
           <button onClick={handleExport} disabled={isExporting} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-800 transition-all text-sm font-medium">
@@ -527,7 +540,7 @@ export default function App() {
                         ))}
                     </div>
                     {activeTextLayer && (
-                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-3">
+                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-3 animate-in fade-in zoom-in-95 duration-200">
                             <textarea value={activeTextLayer.content} onChange={(e) => updateTextLayer(activeTextLayer.id, 'content', e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:border-purple-500 outline-none" rows={3} />
                             <div className="grid grid-cols-2 gap-2">
                                 <select value={activeTextLayer.fontFamily} onChange={(e) => updateTextLayer(activeTextLayer.id, 'fontFamily', e.target.value)} className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none">
@@ -552,24 +565,42 @@ export default function App() {
           </aside>
         )}
         <section className="flex-1 bg-slate-100 relative flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-auto flex items-center justify-center p-8 relative">
+          <div className="flex-1 overflow-auto flex items-center justify-center p-12 relative">
             {viewMode === 'single' ? (
-              <div className="flex items-center gap-4 z-10">
-                <button onClick={() => setActiveSlideIndex(Math.max(0, activeSlideIndex - 1))} disabled={activeSlideIndex === 0} className="p-2 rounded-full bg-white shadow-sm disabled:opacity-30"><ChevronLeft size={24} /></button>
-                <div className="relative group">
+              <div className="flex items-center gap-6 z-10">
+                <button onClick={() => setActiveSlideIndex(Math.max(0, activeSlideIndex - 1))} disabled={activeSlideIndex === 0} className="p-3 rounded-full bg-white shadow-md disabled:opacity-30 hover:bg-slate-50 transition-colors"><ChevronLeft size={28} /></button>
+                <div className="relative group p-4">
                   <SlideCanvas slide={activeSlide} scale={1.2} isEditing={true} showSafeZone={showGuides} selectedTextId={selectedTextId} onSelectText={setSelectedTextId} canvasRef={slideRef} onInteractionStart={onInteractionStart} />
-                  {/* BOTÃO DUPLICAR SLIDE PRINCIPAL */}
-                  <button onClick={(e) => duplicateSlide(activeSlideIndex, e)} className="absolute -right-12 top-0 p-2 bg-white text-purple-600 rounded-lg shadow-sm hover:bg-purple-50 transition-colors" title="Duplicar Slide"><Copy size={20}/></button>
+                  
+                  {/* BOTÃO DUPLICAR SLIDE PRINCIPAL (POSIÇÃO CORRIGIDA) */}
+                  <div className="absolute -right-14 top-1/2 -translate-y-1/2 flex flex-col gap-2">
+                    <button 
+                      onClick={(e) => duplicateSlide(activeSlideIndex, e)} 
+                      className="p-3 bg-white text-purple-600 rounded-xl shadow-xl hover:bg-purple-50 hover:scale-110 transition-all border border-purple-100" 
+                      title="Duplicar Este Slide"
+                    >
+                      <Copy size={24}/>
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); removeSlide(activeSlideIndex); }}
+                      disabled={slides.length === 1}
+                      className="p-3 bg-white text-red-500 rounded-xl shadow-xl hover:bg-red-50 hover:scale-110 transition-all border border-red-100 disabled:opacity-50 disabled:scale-100" 
+                      title="Excluir"
+                    >
+                      <Trash2 size={24}/>
+                    </button>
+                  </div>
                 </div>
-                <button onClick={() => setActiveSlideIndex(Math.min(slides.length - 1, activeSlideIndex + 1))} disabled={activeSlideIndex === slides.length - 1} className="p-2 rounded-full bg-white shadow-sm disabled:opacity-30"><ChevronRight size={24} /></button>
+                <button onClick={() => setActiveSlideIndex(Math.min(slides.length - 1, activeSlideIndex + 1))} disabled={activeSlideIndex === slides.length - 1} className="p-3 rounded-full bg-white shadow-md disabled:opacity-30 hover:bg-slate-50 transition-colors"><ChevronRight size={28} /></button>
               </div>
             ) : (
-              <div className="flex items-center h-full gap-4 overflow-x-auto px-10 pb-4">
+              <div className="flex items-center h-full gap-6 overflow-x-auto px-10 pb-8">
                 {slides.map((slide, idx) => (
-                  <div key={slide.id} className="flex-shrink-0 group relative">
+                  <div key={slide.id} className="flex-shrink-0 group relative p-2">
                     <SlideCanvas slide={slide} scale={0.8} />
-                    <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                       <button onClick={(e) => duplicateSlide(idx, e)} className="p-1.5 bg-white text-purple-600 rounded shadow hover:bg-purple-50"><Copy size={14}/></button>
+                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                       <button onClick={(e) => duplicateSlide(idx, e)} className="p-2 bg-white text-purple-600 rounded-lg shadow-lg hover:bg-purple-50 border border-purple-100"><Copy size={18}/></button>
+                       <button onClick={(e) => { e.stopPropagation(); removeSlide(idx); }} disabled={slides.length === 1} className="p-2 bg-white text-red-500 rounded-lg shadow-lg hover:bg-red-50 border border-red-100"><Trash2 size={18}/></button>
                     </div>
                   </div>
                 ))}
@@ -577,24 +608,29 @@ export default function App() {
             )}
           </div>
           {viewMode === 'single' && (
-            <div className="h-32 bg-white border-t border-slate-200 flex items-center px-4 gap-4 overflow-x-auto z-10">
+            <div className="h-32 bg-white border-t border-slate-200 flex items-center px-4 gap-4 overflow-x-auto z-10 custom-scrollbar">
               {slides.map((slide, idx) => (
-                <div key={slide.id} className={`relative group flex-shrink-0 cursor-pointer transition-all ${idx === activeSlideIndex ? 'ring-2 ring-purple-500' : 'opacity-60'}`} onClick={() => setActiveSlideIndex(idx)}>
-                  <div className="w-16 h-20 bg-slate-200 rounded overflow-hidden relative"><div className="absolute inset-0" style={{ backgroundColor: slide.backgroundColor }}></div>{slide.imageUrl && <img src={slide.imageUrl} className="absolute inset-0 w-full h-full object-cover opacity-50" alt="" />}</div>
-                  <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={(e) => duplicateSlide(idx, e)} className="bg-purple-600 text-white rounded-full p-1 shadow-sm" title="Duplicar"><Copy size={10} /></button>
-                    <button onClick={(e) => { e.stopPropagation(); removeSlide(idx); }} className="bg-red-500 text-white rounded-full p-1 shadow-sm" disabled={slides.length === 1} title="Excluir"><Trash2 size={10} /></button>
+                <div key={slide.id} className={`relative group flex-shrink-0 cursor-pointer transition-all ${idx === activeSlideIndex ? 'ring-4 ring-purple-500 ring-offset-2' : 'opacity-60 hover:opacity-100'}`} onClick={() => setActiveSlideIndex(idx)}>
+                  <div className="w-16 h-20 bg-slate-200 rounded overflow-hidden relative shadow-sm"><div className="absolute inset-0" style={{ backgroundColor: slide.backgroundColor }}></div>{slide.imageUrl && <img src={slide.imageUrl} className="absolute inset-0 w-full h-full object-cover opacity-50" alt="" />}</div>
+                  <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                    <button onClick={(e) => duplicateSlide(idx, e)} className="bg-purple-600 text-white rounded-full p-1.5 shadow-lg border border-white" title="Duplicar"><Copy size={12} /></button>
                   </div>
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] text-center py-0.5">{idx + 1}</div>
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] font-bold text-center py-0.5">{idx + 1}</div>
                 </div>
               ))}
-              <button onClick={addSlide} className="w-16 h-20 border-2 border-dashed border-slate-300 rounded flex flex-col items-center justify-center text-slate-400 hover:border-purple-500 transition-all gap-1 flex-shrink-0"><Plus size={20} /><span className="text-[10px] font-medium">Novo</span></button>
+              <button onClick={addSlide} className="w-16 h-20 border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center text-slate-400 hover:border-purple-500 hover:bg-purple-50 hover:text-purple-500 transition-all gap-1 flex-shrink-0"><Plus size={24} /><span className="text-[10px] font-bold uppercase">Novo</span></button>
             </div>
           )}
         </section>
       </main>
+      
+      {/* Container de Exportação Invisível */}
       <div style={{ position: 'fixed', left: '-9999px', top: 0 }}>
-        {slides.map((slide, index) => (<div key={slide.id} id={`export-slide-${index}`} style={{ width: '1080px', height: '1350px' }}><SlideCanvas slide={slide} scale={3.375} /></div>))}
+        {slides.map((slide, index) => (
+          <div key={slide.id} id={`export-slide-${index}`} style={{ width: '1080px', height: '1350px' }}>
+            <SlideCanvas slide={slide} scale={3.375} />
+          </div>
+        ))}
       </div>
     </div>
   );
