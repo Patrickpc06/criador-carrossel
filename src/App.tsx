@@ -121,7 +121,7 @@ interface SlideCanvasProps {
   showSafeZone?: boolean;
   selectedTextId?: string | null;
   onSelectText?: (id: string) => void;
-  canvasRef?: any; 
+  canvasRef?: React.RefObject<HTMLDivElement | null>; // Ajuste de tipo para TS2322
   onInteractionStart?: (type: string, id: string | null, e: React.MouseEvent) => void;
 }
 
@@ -146,7 +146,7 @@ const SlideCanvas: React.FC<SlideCanvasProps> = ({
             style={{ left: `${slide.imgBoxX}%`, top: `${slide.imgBoxY}%`, width: `${slide.imgBoxW}%`, height: `${slide.imgBoxH}%`, zIndex: 1 }}
             onMouseDown={(e) => handleMouseDown('img_box_move', null, e)}
         >
-             <img src={slide.imageUrl} alt="Slide" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${slide.imgPanX}% ${slide.imgPanY}%`, transform: `scale(${slide.imgZoom})`, pointerEvents: 'none' }} />
+             <img src={slide.imageUrl} alt="Slide Content" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${slide.imgPanX}% ${slide.imgPanY}%`, transform: `scale(${slide.imgZoom})`, pointerEvents: 'none' }} />
              {isEditing && (
                 <div onMouseDown={(e) => handleMouseDown('img_box_resize', null, e)} className="absolute bottom-0 right-0 w-6 h-6 bg-white border-2 border-purple-600 rounded-tl-lg cursor-nwse-resize flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
                     <Crop size={12} className="text-purple-600"/>
@@ -196,7 +196,7 @@ export default function App() {
   const activeSlide = slides[activeSlideIndex];
   const activeTextLayer = activeSlide.textLayers.find(t => t.id === selectedTextId);
 
-  // --- INICIALIZAÇÃO INFALÍVEL ---
+  // --- INICIALIZAÇÃO SEGURA ---
   useEffect(() => {
     const initApp = () => {
       try {
@@ -210,10 +210,9 @@ export default function App() {
         }
       } catch (e) {
         console.warn("Storage reset");
-        localStorage.clear();
       } finally {
-        // Delay para garantir o fim visual do loading
-        setTimeout(() => setAuthLoading(false), 300);
+        // ESSENCIAL: Garante o fim do loading
+        setAuthLoading(false);
       }
     };
     initApp();
@@ -371,7 +370,7 @@ export default function App() {
             if (element) {
                 const canvas = await window.html2canvas(element, { scale: 2, useCORS: true });
                 const link = document.createElement('a');
-                link.download = `slide-${i + 1}.png`;
+                link.download = `carrossel-${i + 1}.png`;
                 link.href = canvas.toDataURL('image/png'); 
                 link.click();
             }
@@ -559,8 +558,8 @@ export default function App() {
                 <div className="relative group p-4">
                   <SlideCanvas slide={activeSlide} scale={1.2} isEditing={true} showSafeZone={showGuides} selectedTextId={selectedTextId} onSelectText={setSelectedTextId} canvasRef={slideRef} onInteractionStart={onInteractionStart} />
                   <div className="absolute -right-14 top-1/2 -translate-y-1/2 flex flex-col gap-2">
-                    <button onClick={(e) => duplicateSlide(activeSlideIndex, e)} className="p-3 bg-white text-purple-600 rounded-xl shadow-xl hover:scale-110 transition-all border border-purple-100"><Copy size={24}/></button>
-                    <button onClick={(e) => { e.stopPropagation(); removeSlide(activeSlideIndex); }} disabled={slides.length === 1} className="p-3 bg-white text-red-500 rounded-xl shadow-xl hover:scale-110 transition-all border border-red-100 disabled:opacity-50"><Trash2 size={24}/></button>
+                    <button onClick={(e) => duplicateSlide(activeSlideIndex, e)} className="p-3 bg-white text-purple-600 rounded-xl shadow-xl hover:scale-110 transition-all border border-purple-100" title="Duplicar Slide"><Copy size={24}/></button>
+                    <button onClick={(e) => { e.stopPropagation(); removeSlide(activeSlideIndex); }} disabled={slides.length === 1} className="p-3 bg-white text-red-500 rounded-xl shadow-xl hover:scale-110 transition-all border border-red-100 disabled:opacity-50" title="Excluir"><Trash2 size={24}/></button>
                   </div>
                 </div>
                 <button onClick={() => setActiveSlideIndex(Math.min(slides.length - 1, activeSlideIndex + 1))} disabled={activeSlideIndex === slides.length - 1} className="p-3 rounded-full bg-white shadow-md hover:bg-slate-50 transition-colors"><ChevronRight size={28} /></button>
@@ -585,7 +584,7 @@ export default function App() {
                 <div key={slide.id} className={`relative group flex-shrink-0 cursor-pointer transition-all ${idx === activeSlideIndex ? 'ring-4 ring-purple-500 ring-offset-2' : 'opacity-60 hover:opacity-100'}`} onClick={() => setActiveSlideIndex(idx)}>
                   <div className="w-16 h-20 bg-slate-200 rounded overflow-hidden relative shadow-sm"><div className="absolute inset-0" style={{ backgroundColor: slide.backgroundColor }}></div>{slide.imageUrl && <img src={slide.imageUrl} className="absolute inset-0 w-full h-full object-cover opacity-50" alt="" />}</div>
                   <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                    <button onClick={(e) => duplicateSlide(idx, e)} className="bg-purple-600 text-white rounded-full p-1.5 shadow-lg border border-white"><Copy size={12} /></button>
+                    <button onClick={(e) => duplicateSlide(idx, e)} className="bg-purple-600 text-white rounded-full p-1.5 shadow-lg border border-white" title="Duplicar"><Copy size={12} /></button>
                   </div>
                   <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] font-bold text-center py-0.5">{idx + 1}</div>
                 </div>
