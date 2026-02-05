@@ -2,48 +2,24 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, 
   Trash2, 
-  Image as ImageIcon, 
   Type, 
-  Palette, 
   Download, 
   ChevronLeft, 
   ChevronRight, 
   Grid, 
   Smartphone, 
   MoveHorizontal, 
-  LayoutTemplate, 
-  AlignLeft, 
-  AlignCenter, 
-  AlignRight, 
-  Ruler, 
   Upload, 
-  Maximize2, 
-  Droplets, 
-  Layers, 
-  Eye, 
-  EyeOff, 
   Loader2, 
-  Minus, 
-  Plus as PlusIcon, 
   Save, 
   LogOut, 
   CheckCircle2, 
-  Bold, 
-  Italic, 
-  Underline, 
-  Highlighter, 
-  X, 
-  ArrowUpDown,   
-  ArrowLeftRight, 
-  Crop, 
   Home,
   Copy,
   FolderOpen
 } from 'lucide-react';
 
 // --- TIPOS ---
-interface Position { x: number; y: number; }
-
 interface TextLayer {
   id: string;
   content: string;
@@ -121,7 +97,7 @@ interface SlideCanvasProps {
   showSafeZone?: boolean;
   selectedTextId?: string | null;
   onSelectText?: (id: string) => void;
-  canvasRef?: React.RefObject<HTMLDivElement | null>; // Ajuste de tipo para TS2322
+  canvasRef?: React.RefObject<HTMLDivElement | null>;
   onInteractionStart?: (type: string, id: string | null, e: React.MouseEvent) => void;
 }
 
@@ -142,16 +118,11 @@ const SlideCanvas: React.FC<SlideCanvasProps> = ({
       onMouseDown={() => isEditing && onSelectText && onSelectText('')} 
     >
       {slide.imageUrl && (
-        <div className={`absolute overflow-hidden group ${isEditing ? 'hover:outline hover:outline-2 hover:outline-purple-400 hover:outline-dashed' : ''}`}
+        <div className="absolute overflow-hidden"
             style={{ left: `${slide.imgBoxX}%`, top: `${slide.imgBoxY}%`, width: `${slide.imgBoxW}%`, height: `${slide.imgBoxH}%`, zIndex: 1 }}
             onMouseDown={(e) => handleMouseDown('img_box_move', null, e)}
         >
-             <img src={slide.imageUrl} alt="Slide Content" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${slide.imgPanX}% ${slide.imgPanY}%`, transform: `scale(${slide.imgZoom})`, pointerEvents: 'none' }} />
-             {isEditing && (
-                <div onMouseDown={(e) => handleMouseDown('img_box_resize', null, e)} className="absolute bottom-0 right-0 w-6 h-6 bg-white border-2 border-purple-600 rounded-tl-lg cursor-nwse-resize flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                    <Crop size={12} className="text-purple-600"/>
-                </div>
-             )}
+             <img src={slide.imageUrl} alt="Conteúdo" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${slide.imgPanX}% ${slide.imgPanY}%`, transform: `scale(${slide.imgZoom})`, pointerEvents: 'none' }} />
         </div>
       )}
       {slide.overlayEnabled && <div className="absolute inset-0 pointer-events-none z-10" style={{ backgroundColor: slide.overlayColor, opacity: slide.overlayOpacity / 100 }} />}
@@ -178,6 +149,7 @@ export default function App() {
   const [user, setUser] = useState<{ email: string } | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [email, setEmail] = useState('');
+  
   const [currentProjectName, setCurrentProjectName] = useState('Carrossel');
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [slides, setSlides] = useState<Slide[]>([createInitialSlide()]);
@@ -192,7 +164,7 @@ export default function App() {
   const [interaction, setInteraction] = useState<{ type: string; id: string | null; startX: number; startY: number; initialVal: any; } | null>(null);
   const [view, setView] = useState<'auth' | 'dashboard' | 'editor'>('auth');
 
-  const slideRef = useRef<HTMLDivElement | null>(null);
+  const slideRef = useRef<HTMLDivElement>(null);
   const activeSlide = slides[activeSlideIndex];
   const activeTextLayer = activeSlide.textLayers.find(t => t.id === selectedTextId);
 
@@ -211,7 +183,6 @@ export default function App() {
       } catch (e) {
         console.warn("Storage reset");
       } finally {
-        // ESSENCIAL: Garante o fim do loading
         setAuthLoading(false);
       }
     };
@@ -495,7 +466,7 @@ export default function App() {
         </div>
         <div className="flex items-center gap-2">
           <div className="flex bg-slate-100 p-1 rounded-lg">
-            <button onClick={() => setShowGuides(!showGuides)} className={`p-2 rounded-md ${showGuides ? 'bg-cyan-100 text-cyan-700' : 'text-slate-400'}`}><Ruler size={18} /></button>
+            <button onClick={() => setShowGuides(!showGuides)} className={`p-2 rounded-md ${showGuides ? 'bg-cyan-100 text-cyan-700' : 'text-slate-400'}`}><Plus size={18} /></button>
             <div className="w-px bg-slate-200 mx-1"></div>
             <button onClick={() => setViewMode('single')} className={`p-2 rounded-md ${viewMode === 'single' ? 'bg-white shadow text-purple-600' : 'text-slate-500'}`}><Smartphone size={18} /></button>
             <button onClick={() => setViewMode('grid')} className={`p-2 rounded-md ${viewMode === 'grid' ? 'bg-white shadow text-purple-600' : 'text-slate-500'}`}><MoveHorizontal size={18} /></button>
