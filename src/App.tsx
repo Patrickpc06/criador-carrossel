@@ -42,8 +42,6 @@ import {
 } from 'lucide-react';
 
 // --- TIPOS ---
-interface Position { x: number; y: number; }
-
 interface TextLayer {
   id: string;
   content: string;
@@ -187,7 +185,6 @@ export default function App() {
   const [user, setUser] = useState<{ email: string } | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [email, setEmail] = useState('');
-  
   const [currentProjectName, setCurrentProjectName] = useState('Meu Novo Carrossel');
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [slides, setSlides] = useState<Slide[]>([createInitialSlide()]);
@@ -213,8 +210,7 @@ export default function App() {
       try {
         const savedUser = localStorage.getItem('app_user');
         if (savedUser) {
-          const parsedUser = JSON.parse(savedUser);
-          setUser(parsedUser);
+          setUser(JSON.parse(savedUser));
           setView('dashboard');
           const data = localStorage.getItem('my_projects');
           if (data) setMyProjects(JSON.parse(data));
@@ -222,7 +218,6 @@ export default function App() {
       } catch (e) {
         console.warn("Storage reset");
       } finally {
-        // ESSENCIAL: Garante o fim do loading em qualquer circunstância
         setAuthLoading(false);
       }
     };
@@ -230,8 +225,7 @@ export default function App() {
   }, []);
 
   const createNewProject = () => {
-    const newId = Date.now().toString();
-    setCurrentProjectId(newId);
+    setCurrentProjectId(Date.now().toString());
     setCurrentProjectName('Novo Carrossel');
     setSlides([createInitialSlide()]);
     setActiveSlideIndex(0);
@@ -277,7 +271,7 @@ export default function App() {
             if (!currentProjectId) setCurrentProjectId(newProject.id);
             setSaveMessage('Salvo!');
         } catch (e) {
-            setSaveMessage('Erro ao salvar!');
+            setSaveMessage('Erro!');
         } finally {
             setIsSaving(false);
             setTimeout(() => setSaveMessage(''), 2000);
@@ -301,7 +295,6 @@ export default function App() {
     setView('auth');
   };
 
-  // --- EDITOR FUNCTIONS ---
   const addSlide = () => {
     const newSlide = createInitialSlide();
     newSlide.backgroundColor = activeSlide.backgroundColor;
@@ -409,7 +402,7 @@ export default function App() {
             if (element) {
                 const canvas = await window.html2canvas(element, { scale: 2, useCORS: true, logging: false });
                 const link = document.createElement('a');
-                link.download = `${currentProjectName}-${i + 1}.png`;
+                link.download = `carrossel-${i + 1}.png`;
                 link.href = canvas.toDataURL('image/png'); 
                 link.click();
             }
@@ -418,7 +411,6 @@ export default function App() {
     finally { setIsExporting(false); }
   };
 
-  // --- MOUSE INTERACTIONS ---
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!interaction || !slideRef.current) return;
@@ -465,8 +457,6 @@ export default function App() {
       else if (type === 'img_box_resize') { initialVal = { w: activeSlide.imgBoxW, h: activeSlide.imgBoxH }; }
       setInteraction({ type, id, startX: e.clientX, startY: e.clientY, initialVal });
   };
-
-  // --- RENDERS ---
 
   if (authLoading) {
     return (
@@ -530,7 +520,6 @@ export default function App() {
     );
   }
 
-  // --- EDITOR VIEW (COMPLETA) ---
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-800 overflow-hidden">
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Inter:wght@400;700;900&family=Lora:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;700;900&family=Playfair+Display:wght@400;700;900&family=Roboto:wght@400;700;900&display=swap');`}</style>
@@ -560,23 +549,22 @@ export default function App() {
         {viewMode === 'single' && (
           <aside className="w-full md:w-80 bg-white border-r border-slate-200 flex flex-col overflow-y-auto h-full z-20 shadow-lg md:shadow-none absolute md:relative custom-scrollbar">
             <div className="p-5 space-y-6">
-              {/* EDIÇÃO DE TEXTO */}
               <section>
                 <div className="flex items-center justify-between mb-3">
                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><Type size={14} /> Elementos de Texto</label>
-                    <button onClick={addTextLayer} className="text-[10px] bg-purple-100 text-purple-700 px-2 py-1 rounded-md font-bold hover:bg-purple-200 transition-colors"><Plus size={12}/> Novo</button>
+                    <button onClick={addTextLayer} className="text-[10px] bg-purple-100 text-purple-700 px-2 py-1 rounded-md font-bold hover:bg-purple-200 transition-colors"><Plus size={12}/> Adicionar</button>
                 </div>
                 <div className="space-y-3">
-                    <div className="space-y-1 mb-4 max-h-32 overflow-y-auto custom-scrollbar border border-slate-50 p-1 rounded-lg">
+                    <div className="space-y-1 mb-4 max-h-32 overflow-y-auto border border-slate-50 p-1 rounded-lg">
                         {activeSlide.textLayers.map(layer => (
-                            <div key={layer.id} onClick={() => setSelectedTextId(layer.id)} className={`flex items-center justify-between p-2 rounded-lg cursor-pointer border text-[11px] transition-all ${selectedTextId === layer.id ? 'bg-purple-50 border-purple-300 text-purple-800 font-bold shadow-sm' : 'bg-white border-slate-100 hover:border-slate-300 text-slate-600'}`}>
+                            <div key={layer.id} onClick={() => setSelectedTextId(layer.id)} className={`flex items-center justify-between p-2 rounded-lg cursor-pointer border text-[11px] transition-all ${selectedTextId === layer.id ? 'bg-purple-50 border-purple-300 text-purple-800 font-bold' : 'bg-white border-slate-100 hover:border-slate-300 text-slate-600'}`}>
                                 <span className="truncate max-w-[150px]">{layer.content || "(Vazio)"}</span>
                                 <button onClick={(e) => { e.stopPropagation(); removeTextLayer(layer.id); }} className="text-slate-400 hover:text-red-500"><Trash2 size={12}/></button>
                             </div>
                         ))}
                     </div>
                     {activeTextLayer ? (
-                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-3 animate-in fade-in slide-in-from-right-4 duration-300 shadow-sm">
+                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-3 shadow-sm">
                             <textarea value={activeTextLayer.content} onChange={(e) => updateTextLayer(activeTextLayer.id, 'content', e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:border-purple-500 outline-none resize-none shadow-inner" rows={3} autoFocus />
                             <div className="flex items-center justify-between">
                                 <div className="flex bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
@@ -593,7 +581,7 @@ export default function App() {
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="space-y-1">
                                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tamanho</span>
-                                    <div className="flex items-center bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
+                                    <div className="flex items-center bg-white border border-slate-200 rounded-lg shadow-sm">
                                         <button onClick={() => updateTextLayer(activeTextLayer.id, 'fontSize', Math.max(8, activeTextLayer.fontSize - 1))} className="px-2 py-1.5 hover:bg-slate-50 border-r"><Minus size={12}/></button>
                                         <span className="flex-1 text-center text-xs font-bold">{Math.round(activeTextLayer.fontSize)}</span>
                                         <button onClick={() => updateTextLayer(activeTextLayer.id, 'fontSize', Math.min(200, activeTextLayer.fontSize + 1))} className="px-2 py-1.5 hover:bg-slate-50 border-l"><PlusIcon size={12}/></button>
@@ -601,15 +589,15 @@ export default function App() {
                                 </div>
                                 <div className="space-y-1">
                                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tipografia</span>
-                                    <select value={activeTextLayer.fontFamily} onChange={(e) => updateTextLayer(activeTextLayer.id, 'fontFamily', e.target.value)} className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] outline-none shadow-sm cursor-pointer font-medium">
+                                    <select value={activeTextLayer.fontFamily} onChange={(e) => updateTextLayer(activeTextLayer.id, 'fontFamily', e.target.value)} className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] outline-none cursor-pointer">
                                         {fontOptions.map(f => <option key={f.name} value={f.value}>{f.name}</option>)}
                                     </select>
                                 </div>
                             </div>
-                            <div className="bg-slate-100/50 p-2 rounded-lg border border-slate-200 space-y-2">
-                                <div className="flex items-center justify-between"><span className="text-[10px] text-slate-500 font-bold flex items-center gap-1 uppercase tracking-wider"><ArrowUpDown size={10}/> Altura Linha</span><span className="text-[10px] text-slate-400">{activeTextLayer.lineHeight.toFixed(1)}</span></div>
+                            <div className="bg-slate-100/50 p-2 rounded-lg space-y-2">
+                                <div className="flex items-center justify-between"><span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider"><ArrowUpDown size={10}/> Altura</span><span className="text-[10px] text-slate-400">{activeTextLayer.lineHeight.toFixed(1)}</span></div>
                                 <input type="range" min="0.8" max="2.5" step="0.1" value={activeTextLayer.lineHeight} onChange={(e) => updateTextLayer(activeTextLayer.id, 'lineHeight', parseFloat(e.target.value))} className="w-full h-1 bg-slate-300 rounded-lg accent-purple-600 cursor-pointer"/>
-                                <div className="flex items-center justify-between mt-1"><span className="text-[10px] text-slate-500 font-bold flex items-center gap-1 uppercase tracking-wider"><ArrowLeftRight size={10}/> Espaçamento</span><span className="text-[10px] text-slate-400">{activeTextLayer.letterSpacing}px</span></div>
+                                <div className="flex items-center justify-between mt-1"><span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider"><ArrowLeftRight size={10}/> Espaço</span><span className="text-[10px] text-slate-400">{activeTextLayer.letterSpacing}px</span></div>
                                 <input type="range" min="-2" max="20" step="0.5" value={activeTextLayer.letterSpacing} onChange={(e) => updateTextLayer(activeTextLayer.id, 'letterSpacing', parseFloat(e.target.value))} className="w-full h-1 bg-slate-300 rounded-lg accent-purple-600 cursor-pointer"/>
                             </div>
                             <div className="flex gap-2">
@@ -618,10 +606,7 @@ export default function App() {
                                     <span className="text-[10px] text-slate-500 font-bold uppercase">Cor</span>
                                 </div>
                                 <div className="flex-1 flex items-center gap-2 bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm">
-                                    <div className="relative">
-                                        <input type="color" value={activeTextLayer.backgroundColor === 'transparent' ? '#ffffff' : activeTextLayer.backgroundColor} onChange={(e) => updateTextLayer(activeTextLayer.id, 'backgroundColor', e.target.value)} className="w-5 h-5 rounded cursor-pointer border-none bg-transparent"/>
-                                        {activeTextLayer.backgroundColor === 'transparent' && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className="w-full h-px bg-red-500 rotate-45"></div></div>}
-                                    </div>
+                                    <input type="color" value={activeTextLayer.backgroundColor === 'transparent' ? '#ffffff' : activeTextLayer.backgroundColor} onChange={(e) => updateTextLayer(activeTextLayer.id, 'backgroundColor', e.target.value)} className="w-5 h-5 rounded cursor-pointer border-none bg-transparent"/>
                                     <span className="text-[10px] text-slate-500 font-bold uppercase flex items-center gap-1"><Highlighter size={10}/> Fundo</span>
                                     {activeTextLayer.backgroundColor !== 'transparent' && <button onClick={() => updateTextLayer(activeTextLayer.id, 'backgroundColor', 'transparent')} className="ml-auto text-slate-400 hover:text-red-500"><X size={10}/></button>}
                                 </div>
@@ -631,32 +616,27 @@ export default function App() {
                 </div>
               </section>
 
-              {/* SEÇÃO: MODELO DE LAYOUT */}
               <section className="pt-4 border-t border-slate-100">
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2"><LayoutTemplate size={14} /> Design de Layout</label>
                 <div className="grid grid-cols-2 gap-2">
                     {(['text-only', 'image-top', 'image-bottom', 'split'] as const).map((t) => (
-                        <button key={t} onClick={() => updateSlide('template', t)} className={`p-2 text-[10px] uppercase font-bold border rounded-lg transition-all ${activeSlide.template === t ? 'border-purple-500 bg-purple-50 text-purple-700 shadow-inner scale-[0.98]' : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50'}`}>{t.replace('-', ' ')}</button>
+                        <button key={t} onClick={() => updateSlide('template', t)} className={`p-2 text-[10px] uppercase font-bold border rounded-lg transition-all ${activeSlide.template === t ? 'border-purple-500 bg-purple-50 text-purple-700 shadow-inner' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>{t.replace('-', ' ')}</button>
                     ))}
                 </div>
               </section>
 
-              {/* SEÇÃO: CONFIGURAÇÃO DE IMAGEM */}
               <section className="pt-4 border-t border-slate-100">
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2"><ImageIcon size={14} /> Elemento de Imagem</label>
                 <div className="space-y-3">
                     <label className="flex items-center justify-center gap-2 w-full p-4 border-2 border-dashed border-slate-300 rounded-2xl cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-all group">
-                        <Upload size={20} className="text-slate-400 group-hover:text-purple-500 group-hover:scale-110 transition-transform" />
+                        <Upload size={20} className="text-slate-400 group-hover:text-purple-500" />
                         <span className="text-xs text-slate-500 group-hover:text-purple-700 font-bold uppercase tracking-widest">Enviar Foto</span>
                         <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload}/>
                     </label>
                     {activeSlide.imageUrl && (
                         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-4 shadow-inner">
-                            <div className="flex items-center gap-2 text-slate-500 mb-1"><Maximize2 size={12} /><span className="text-[10px] uppercase font-bold tracking-wider">Ajuste de Enquadramento</span></div>
-                            <div className="space-y-1">
-                                <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest"><span>Zoom Ativo</span><span>{activeSlide.imgZoom.toFixed(1)}x</span></div>
-                                <input type="range" min="1" max="3" step="0.1" value={activeSlide.imgZoom} onChange={(e) => updateSlide('imgZoom', parseFloat(e.target.value))} className="w-full h-1.5 bg-slate-300 rounded-lg accent-purple-600 cursor-pointer"/>
-                            </div>
+                            <div className="flex items-center gap-2 text-slate-500 mb-1"><Maximize2 size={12} /><span className="text-[10px] uppercase font-bold tracking-wider">Ajuste de Zoom</span></div>
+                            <input type="range" min="1" max="3" step="0.1" value={activeSlide.imgZoom} onChange={(e) => updateSlide('imgZoom', parseFloat(e.target.value))} className="w-full h-1.5 bg-slate-300 rounded-lg accent-purple-600 cursor-pointer"/>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <span className="text-[10px] text-slate-500 font-bold uppercase">Horizontal</span>
@@ -667,39 +647,35 @@ export default function App() {
                                     <input type="range" min="0" max="100" value={activeSlide.imgPanY} onChange={(e) => updateSlide('imgPanY', parseFloat(e.target.value))} className="w-full h-1 bg-slate-300 rounded-lg accent-purple-600"/>
                                 </div>
                             </div>
-                            <button onClick={() => updateSlide('imageUrl', '')} className="w-full py-2 text-[10px] text-red-500 bg-red-50 rounded-xl hover:bg-red-100 transition-all font-bold uppercase tracking-widest border border-red-100">Remover Ficheiro</button>
+                            <button onClick={() => updateSlide('imageUrl', '')} className="w-full py-2 text-[10px] text-red-500 bg-red-50 rounded-xl hover:bg-red-100 transition-all font-bold uppercase tracking-widest">Remover Imagem</button>
                         </div>
                     )}
                 </div>
               </section>
 
-              {/* SEÇÃO: PALETA E FILTROS */}
               <section className="pt-4 border-t border-slate-100">
                 <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2"><Palette size={14} /> Estética Visual</label>
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cor Sólida do Slide</span>
-                        <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border border-slate-200 shadow-sm">
+                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cor do Slide</span>
+                        <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border border-slate-200">
                             <input type="color" value={activeSlide.backgroundColor} onChange={(e) => updateSlide('backgroundColor', e.target.value)} className="w-10 h-10 rounded-lg cursor-pointer border-none bg-transparent"/>
-                            <span className="text-xs font-mono text-slate-500 font-bold uppercase tracking-wider">{activeSlide.backgroundColor}</span>
+                            <span className="text-xs font-mono text-slate-500 font-bold uppercase">{activeSlide.backgroundColor}</span>
                         </div>
                     </div>
                     <div className="bg-purple-50/50 p-4 rounded-2xl border border-purple-100 space-y-4 shadow-inner">
                         <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-purple-700 font-bold uppercase text-[10px] tracking-[0.2em]"><Layers size={14} /> Camada de Filtro</div>
+                            <div className="flex items-center gap-2 text-purple-700 font-bold uppercase text-[10px] tracking-widest"><Layers size={14} /> Filtro Colorido</div>
                             <button onClick={() => updateSlide('overlayEnabled', !activeSlide.overlayEnabled)} className={`p-2 rounded-xl transition-all ${activeSlide.overlayEnabled ? 'bg-purple-600 text-white shadow-lg' : 'bg-slate-200 text-slate-500'}`}>{activeSlide.overlayEnabled ? <Eye size={16} /> : <EyeOff size={16} />}</button>
                         </div>
                         {activeSlide.overlayEnabled && (
                             <div className="space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
-                                <div className="space-y-2">
-                                    <span className="text-[10px] text-purple-400 font-bold uppercase">Cor do Filtro</span>
-                                    <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-purple-100 shadow-sm">
-                                        <input type="color" value={activeSlide.overlayColor} onChange={(e) => updateSlide('overlayColor', e.target.value)} className="w-10 h-10 rounded-lg cursor-pointer border-none bg-transparent"/>
-                                        <span className="text-xs font-mono text-slate-500 font-bold uppercase">{activeSlide.overlayColor}</span>
-                                    </div>
+                                <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-purple-100 shadow-sm">
+                                    <input type="color" value={activeSlide.overlayColor} onChange={(e) => updateSlide('overlayColor', e.target.value)} className="w-10 h-10 rounded-lg cursor-pointer border-none bg-transparent"/>
+                                    <span className="text-xs font-mono text-slate-500 font-bold uppercase">{activeSlide.overlayColor}</span>
                                 </div>
                                 <div className="space-y-2">
-                                    <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest"><span className="flex items-center gap-1"><Droplets size={12}/> Nível de Opacidade</span><span>{activeSlide.overlayOpacity}%</span></div>
+                                    <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest"><span className="flex items-center gap-1"><Droplets size={12}/> Opacidade</span><span>{activeSlide.overlayOpacity}%</span></div>
                                     <input type="range" min="0" max="100" value={activeSlide.overlayOpacity} onChange={(e) => updateSlide('overlayOpacity', parseInt(e.target.value))} className="w-full h-1.5 bg-slate-300 rounded-lg accent-purple-600 cursor-pointer"/>
                                 </div>
                             </div>
@@ -708,12 +684,11 @@ export default function App() {
                 </div>
               </section>
 
-              {/* FONTE EXTERNA */}
-              <section className="pt-4 border-t border-slate-100 pb-12">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2"><PlusIcon size={14} /> Importação Google Fonts</label>
+              <section className="pt-4 border-t border-slate-100 pb-20">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2"><PlusIcon size={14} /> Google Fonts</label>
                 <div className="flex flex-col gap-2">
-                    <input type="text" value={customFontInput} onChange={(e) => setCustomFontInput(e.target.value)} placeholder="Ex: Oswald ou Montserrat" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] outline-none shadow-inner" />
-                    <button onClick={loadCustomFont} className="w-full px-3 py-2.5 bg-slate-200 hover:bg-purple-600 hover:text-white rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] transition-all shadow-sm">Ativar Nova Fonte</button>
+                    <input type="text" value={customFontInput} onChange={(e) => setCustomFontInput(e.target.value)} placeholder="Montserrat ou Oswald" className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-[11px] outline-none shadow-inner" />
+                    <button onClick={loadCustomFont} className="w-full px-3 py-2.5 bg-slate-200 hover:bg-purple-600 hover:text-white rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all">Importar Fonte</button>
                 </div>
               </section>
             </div>
@@ -724,43 +699,26 @@ export default function App() {
           <div className="flex-1 overflow-auto flex items-center justify-center p-12 relative custom-scrollbar">
             {viewMode === 'single' ? (
               <div className="flex items-center gap-10 z-10 animate-in fade-in zoom-in-95 duration-500">
-                <button onClick={() => setActiveSlideIndex(Math.max(0, activeSlideIndex - 1))} disabled={activeSlideIndex === 0} className="p-5 rounded-full bg-white shadow-2xl disabled:opacity-30 hover:bg-slate-50 hover:scale-110 active:scale-95 transition-all text-slate-600 border border-slate-100"><ChevronLeft size={36} /></button>
+                <button onClick={() => setActiveSlideIndex(Math.max(0, activeSlideIndex - 1))} disabled={activeSlideIndex === 0} className="p-5 rounded-full bg-white shadow-2xl disabled:opacity-30 hover:bg-slate-50 transition-all text-slate-600 border border-slate-100"><ChevronLeft size={36} /></button>
                 <div className="relative group p-6 bg-white/30 backdrop-blur-md rounded-[2.5rem] shadow-2xl border border-white/50">
-                  <SlideCanvas 
-                    slide={activeSlide} 
-                    scale={1.2} 
-                    isEditing={true} 
-                    showSafeZone={showGuides} 
-                    selectedTextId={selectedTextId} 
-                    onSelectText={setSelectedTextId} 
-                    canvasRef={slideRef} 
-                    onInteractionStart={onInteractionStart} 
-                  />
-                  {/* BARRA DE AÇÕES RÁPIDAS (LADO DIREITO DO SLIDE) */}
+                  <SlideCanvas slide={activeSlide} scale={1.2} isEditing={true} showSafeZone={showGuides} selectedTextId={selectedTextId} onSelectText={setSelectedTextId} canvasRef={slideRef} onInteractionStart={onInteractionStart} />
                   <div className="absolute -right-20 top-1/2 -translate-y-1/2 flex flex-col gap-5">
-                    <button onClick={(e) => duplicateSlide(activeSlideIndex, e)} className="p-5 bg-white text-purple-600 rounded-[1.25rem] shadow-2xl hover:scale-110 active:scale-90 transition-all border border-purple-100 group relative" title="Duplicar Página">
-                        <Copy size={30}/>
-                        <span className="absolute left-full ml-4 px-2 py-1 bg-slate-800 text-white text-[9px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none uppercase tracking-widest">Duplicar Slide</span>
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); removeSlide(activeSlideIndex); }} disabled={slides.length === 1} className="p-5 bg-white text-red-500 rounded-[1.25rem] shadow-2xl hover:scale-110 active:scale-90 transition-all border border-red-100 disabled:opacity-50 disabled:scale-100 group relative" title="Eliminar Página">
-                        <Trash2 size={30}/>
-                        <span className="absolute left-full ml-4 px-2 py-1 bg-red-600 text-white text-[9px] rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none uppercase tracking-widest">Apagar Slide</span>
-                    </button>
+                    <button onClick={(e) => duplicateSlide(activeSlideIndex, e)} className="p-5 bg-white text-purple-600 rounded-[1.25rem] shadow-2xl hover:scale-110 active:scale-90 transition-all border border-purple-100" title="Duplicar Página"><Copy size={30}/></button>
+                    <button onClick={(e) => { e.stopPropagation(); removeSlide(activeSlideIndex); }} disabled={slides.length === 1} className="p-5 bg-white text-red-500 rounded-[1.25rem] shadow-2xl hover:scale-110 active:scale-90 transition-all border border-red-100 disabled:opacity-50" title="Excluir Página"><Trash2 size={30}/></button>
                   </div>
-                  <div className="absolute -bottom-10 left-0 right-0 text-center uppercase tracking-[0.4em] font-black text-[11px] text-slate-400 select-none">Página {activeSlideIndex + 1} / {slides.length}</div>
                 </div>
-                <button onClick={() => setActiveSlideIndex(Math.min(slides.length - 1, activeSlideIndex + 1))} disabled={activeSlideIndex === slides.length - 1} className="p-5 rounded-full bg-white shadow-2xl disabled:opacity-30 hover:bg-slate-50 hover:scale-110 active:scale-95 transition-all text-slate-600 border border-slate-100"><ChevronRight size={36} /></button>
+                <button onClick={() => setActiveSlideIndex(Math.min(slides.length - 1, activeSlideIndex + 1))} disabled={activeSlideIndex === slides.length - 1} className="p-5 rounded-full bg-white shadow-2xl disabled:opacity-30 hover:bg-slate-50 transition-all text-slate-600 border border-slate-100"><ChevronRight size={36} /></button>
               </div>
             ) : (
               <div className="flex items-center h-full gap-12 overflow-x-auto px-24 pb-16 custom-scrollbar">
                 {slides.map((slide, idx) => (
                   <div key={slide.id} className="flex-shrink-0 group relative p-4 transition-all hover:scale-[1.02] duration-500">
-                    <div className="shadow-[0_20px_50px_rgba(0,0,0,0.15)] rounded-2xl overflow-hidden border-4 border-white">
+                    <div className="shadow-2xl rounded-2xl overflow-hidden border-4 border-white">
                         <SlideCanvas slide={slide} scale={0.7} />
                     </div>
-                    <div className="absolute top-8 right-8 flex gap-3 opacity-0 group-hover:opacity-100 transition-all translate-y-4 group-hover:translate-y-0 duration-300">
-                       <button onClick={(e) => duplicateSlide(idx, e)} className="p-3 bg-white text-purple-600 rounded-2xl shadow-2xl border border-purple-100 hover:bg-purple-50 hover:scale-110 active:scale-90 transition-all"><Copy size={22}/></button>
-                       <button onClick={(e) => { e.stopPropagation(); removeSlide(idx); }} disabled={slides.length === 1} className="p-3 bg-white text-red-500 rounded-2xl shadow-2xl border border-red-100 hover:bg-red-50 hover:scale-110 active:scale-90 transition-all"><Trash2 size={22}/></button>
+                    <div className="absolute top-8 right-8 flex gap-3 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                       <button onClick={(e) => duplicateSlide(idx, e)} className="p-3 bg-white text-purple-600 rounded-2xl shadow-2xl border border-purple-100 hover:bg-purple-50 active:scale-90 transition-all"><Copy size={22}/></button>
+                       <button onClick={(e) => { e.stopPropagation(); removeSlide(idx); }} disabled={slides.length === 1} className="p-3 bg-white text-red-500 rounded-2xl shadow-2xl border border-red-100 hover:bg-red-50 active:scale-90 transition-all"><Trash2 size={22}/></button>
                     </div>
                     <div className="absolute -bottom-6 left-0 right-0 text-center text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 bg-white/60 backdrop-blur-md py-2 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-all duration-300">Página {idx + 1}</div>
                   </div>
@@ -786,7 +744,7 @@ export default function App() {
         </section>
       </main>
       
-      {/* CAMADA TÉCNICA PARA EXPORTAÇÃO (INSTAGRAM HD 1080x1350) */}
+      {/* CAMADA TÉCNICA PARA EXPORTAÇÃO */}
       <div style={{ position: 'fixed', left: '-9999px', top: 0, pointerEvents: 'none' }}>
         {slides.map((slide, index) => (
           <div key={slide.id} id={`export-slide-${index}`} style={{ width: '1080px', height: '1350px' }}>
