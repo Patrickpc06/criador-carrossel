@@ -96,7 +96,7 @@ const createTextLayer = (type: 'title' | 'body' | 'subtitle' | 'caption'): TextL
   switch (type) {
     case 'title': return { ...base, content: 'Título Principal', x: 10, y: 10, fontFamily: "'Playfair Display', serif", fontSize: 32, color: '#5A3A29', isBold: true };
     case 'subtitle': return { ...base, content: 'Subtítulo Atrativo', x: 10, y: 25, fontFamily: "'Montserrat', sans-serif", fontSize: 20, color: '#D4AF37' };
-    case 'body': return { ...base, content: 'Seu texto principal vai aqui. Clique para editar.', x: 10, y: 35, fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: '#5A3A29' };
+    case 'body': return { ...base, content: 'Seu texto principal vai aqui.', x: 10, y: 35, fontFamily: "'Montserrat', sans-serif", fontSize: 14, color: '#5A3A29' };
     case 'caption': return { ...base, content: 'Legenda / Detalhe', x: 10, y: 90, fontFamily: "'Inter', sans-serif", fontSize: 10, color: '#000000', backgroundColor: '#FFFFFF' };
     default: return { ...base, content: 'Novo Texto', x: 10, y: 50, fontFamily: "'Inter', sans-serif", fontSize: 16, color: '#000000' };
   }
@@ -121,7 +121,7 @@ interface SlideCanvasProps {
   showSafeZone?: boolean;
   selectedTextId?: string | null;
   onSelectText?: (id: string) => void;
-  canvasRef?: React.RefObject<HTMLDivElement | null>;
+  canvasRef?: any; 
   onInteractionStart?: (type: string, id: string | null, e: React.MouseEvent) => void;
 }
 
@@ -148,7 +148,7 @@ const SlideCanvas: React.FC<SlideCanvasProps> = ({
         >
              <img src={slide.imageUrl} alt="Slide" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${slide.imgPanX}% ${slide.imgPanY}%`, transform: `scale(${slide.imgZoom})`, pointerEvents: 'none' }} />
              {isEditing && (
-                <div onMouseDown={(e) => handleMouseDown('img_box_resize', null, e)} className="absolute bottom-0 right-0 w-6 h-6 bg-white border-2 border-purple-600 rounded-tl-lg cursor-nwse-resize flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20" title="Redimensionar Caixa da Imagem">
+                <div onMouseDown={(e) => handleMouseDown('img_box_resize', null, e)} className="absolute bottom-0 right-0 w-6 h-6 bg-white border-2 border-purple-600 rounded-tl-lg cursor-nwse-resize flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20">
                     <Crop size={12} className="text-purple-600"/>
                 </div>
              )}
@@ -163,7 +163,7 @@ const SlideCanvas: React.FC<SlideCanvasProps> = ({
         >
             <p className="whitespace-pre-wrap pointer-events-none break-words">{layer.content || "Digite algo..."}</p>
             {isEditing && selectedTextId === layer.id && (
-                <div onMouseDown={(e) => handleMouseDown('text_box_resize', layer.id, e)} className="absolute top-1/2 -right-2 w-3 h-6 bg-cyan-400 rounded-r cursor-ew-resize shadow-md z-30 pointer-events-auto flex items-center justify-center hover:scale-125 transition-transform" title="Ajustar Largura"></div>
+                <div onMouseDown={(e) => handleMouseDown('text_box_resize', layer.id, e)} className="absolute top-1/2 -right-2 w-3 h-6 bg-cyan-400 rounded-r cursor-ew-resize shadow-md z-30 pointer-events-auto flex items-center justify-center hover:scale-125 transition-transform"></div>
             )}
         </div>
       ))}
@@ -178,18 +178,15 @@ export default function App() {
   const [user, setUser] = useState<{ email: string } | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [email, setEmail] = useState('');
-  
   const [currentProjectName, setCurrentProjectName] = useState('Carrossel');
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [slides, setSlides] = useState<Slide[]>([createInitialSlide()]);
-  
   const [myProjects, setMyProjects] = useState<Project[]>([]);
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [viewMode, setViewMode] = useState<'single' | 'grid'>('single');
   const [showGuides, setShowGuides] = useState(true); 
   const [isExporting, setIsExporting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [customFontInput, setCustomFontInput] = useState(''); 
   const [saveMessage, setSaveMessage] = useState('');
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [interaction, setInteraction] = useState<{ type: string; id: string | null; startX: number; startY: number; initialVal: any; } | null>(null);
@@ -199,28 +196,27 @@ export default function App() {
   const activeSlide = slides[activeSlideIndex];
   const activeTextLayer = activeSlide.textLayers.find(t => t.id === selectedTextId);
 
-  // --- INICIALIZAÇÃO SEGURA ---
+  // --- INICIALIZAÇÃO INFALÍVEL ---
   useEffect(() => {
-    try {
-      const savedUser = localStorage.getItem('app_user');
-      if (savedUser) {
-        const parsedUser = JSON.parse(savedUser);
-        setUser(parsedUser);
-        setView('dashboard');
-        
-        // Carregar projetos se existirem
-        const data = localStorage.getItem('my_projects');
-        if (data) {
-          setMyProjects(JSON.parse(data));
+    const initApp = () => {
+      try {
+        const savedUser = localStorage.getItem('app_user');
+        if (savedUser) {
+          const parsedUser = JSON.parse(savedUser);
+          setUser(parsedUser);
+          setView('dashboard');
+          const data = localStorage.getItem('my_projects');
+          if (data) setMyProjects(JSON.parse(data));
         }
+      } catch (e) {
+        console.warn("Storage reset");
+        localStorage.clear();
+      } finally {
+        // Delay para garantir o fim visual do loading
+        setTimeout(() => setAuthLoading(false), 300);
       }
-    } catch (e) {
-      console.error("Erro na inicialização:", e);
-      localStorage.removeItem('app_user'); // Limpa dados corrompidos
-    } finally {
-      // GARANTE que o loading pare sempre
-      setAuthLoading(false);
-    }
+    };
+    initApp();
   }, []);
 
   const createNewProject = () => {
@@ -260,23 +256,16 @@ export default function App() {
                 lastModified: Date.now(),
                 slides: slides
             };
-
             let updatedProjects = [...myProjects];
             const existingIndex = updatedProjects.findIndex(p => p.id === newProject.id);
-            
-            if (existingIndex >= 0) {
-                updatedProjects[existingIndex] = newProject;
-            } else {
-                updatedProjects.push(newProject);
-            }
-
+            if (existingIndex >= 0) updatedProjects[existingIndex] = newProject;
+            else updatedProjects.push(newProject);
             setMyProjects(updatedProjects);
             localStorage.setItem('my_projects', JSON.stringify(updatedProjects));
-            
             if (!currentProjectId) setCurrentProjectId(newProject.id);
             setSaveMessage('Salvo!');
         } catch (e) {
-            setSaveMessage('Erro ao salvar');
+            setSaveMessage('Erro!');
         } finally {
             setIsSaving(false);
             setTimeout(() => setSaveMessage(''), 2000);
@@ -290,10 +279,6 @@ export default function App() {
     localStorage.setItem('app_user', JSON.stringify(newUser));
     setUser(newUser);
     setView('dashboard');
-    
-    // Carregar projetos ao entrar
-    const data = localStorage.getItem('my_projects');
-    if (data) setMyProjects(JSON.parse(data));
   };
 
   const handleLogout = () => {
@@ -302,7 +287,7 @@ export default function App() {
     setView('auth');
   };
 
-  // --- FUNÇÕES DO EDITOR ---
+  // --- EDITOR FUNCTIONS ---
   const addSlide = () => {
     const newSlide = createInitialSlide();
     newSlide.backgroundColor = activeSlide.backgroundColor;
@@ -313,14 +298,10 @@ export default function App() {
   const duplicateSlide = (index: number, e: React.MouseEvent) => {
     e.stopPropagation();
     const slideToCopy = slides[index];
-    // Cópia profunda para evitar referências ao original
     const newSlide = {
         ...JSON.parse(JSON.stringify(slideToCopy)),
         id: Math.random().toString(36).substr(2, 9),
-        textLayers: slideToCopy.textLayers.map(layer => ({ 
-          ...layer, 
-          id: Math.random().toString(36).substr(2, 9) 
-        }))
+        textLayers: slideToCopy.textLayers.map(layer => ({ ...layer, id: Math.random().toString(36).substr(2, 9) }))
     };
     const newSlides = [...slides];
     newSlides.splice(index + 1, 0, newSlide);
@@ -388,9 +369,9 @@ export default function App() {
         for (let i = 0; i < slides.length; i++) {
             const element = document.getElementById(`export-slide-${i}`);
             if (element) {
-                const canvas = await window.html2canvas(element, { scale: 2, useCORS: true, logging: false });
+                const canvas = await window.html2canvas(element, { scale: 2, useCORS: true });
                 const link = document.createElement('a');
-                link.download = `${currentProjectName}-${i + 1}.png`;
+                link.download = `slide-${i + 1}.png`;
                 link.href = canvas.toDataURL('image/png'); 
                 link.click();
             }
@@ -399,7 +380,7 @@ export default function App() {
     finally { setIsExporting(false); }
   };
 
-  // --- INTERAÇÃO MOUSE ---
+  // --- MOUSE INTERACTIONS ---
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!interaction || !slideRef.current) return;
@@ -423,8 +404,14 @@ export default function App() {
       }
     };
     const handleMouseUp = () => setInteraction(null);
-    if (interaction) { window.addEventListener('mousemove', handleMouseMove); window.addEventListener('mouseup', handleMouseUp); }
-    return () => { window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); };
+    if (interaction) { 
+        window.addEventListener('mousemove', handleMouseMove); 
+        window.addEventListener('mouseup', handleMouseUp); 
+    }
+    return () => { 
+        window.removeEventListener('mousemove', handleMouseMove); 
+        window.removeEventListener('mouseup', handleMouseUp); 
+    };
   }, [interaction, activeSlideIndex, slides]);
 
   const onInteractionStart = (type: string, id: string | null, e: React.MouseEvent) => {
@@ -448,7 +435,7 @@ export default function App() {
 
   if (view === 'auth') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-purple-50 p-4 font-sans">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-purple-50 p-4 font-sans text-slate-800">
         <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
           <div className="flex justify-center mb-6"><div className="bg-gradient-to-tr from-purple-600 to-pink-600 text-white p-3 rounded-xl shadow-lg"><Grid size={32} /></div></div>
           <h1 className="text-2xl font-bold text-center text-slate-800 mb-2">Image Laboratory</h1>
@@ -468,7 +455,7 @@ export default function App() {
     return (
       <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
         <header className="bg-white border-b border-slate-200 px-8 py-4 flex justify-between items-center sticky top-0 z-10">
-           <div className="flex items-center gap-2"><div className="bg-gradient-to-tr from-purple-500 to-pink-500 text-white p-2 rounded-lg"><Smartphone size={20} /></div><h1 className="text-xl font-bold text-slate-800">Dashboard</h1></div>
+           <div className="flex items-center gap-2"><div className="bg-gradient-to-tr from-purple-500 to-pink-500 text-white p-2 rounded-lg"><Smartphone size={20} /></div><h1 className="text-xl font-bold">Dashboard</h1></div>
            <div className="flex items-center gap-4">
              <div className="text-sm text-slate-500">Olá, <strong>{user?.email}</strong></div>
              <button onClick={handleLogout} className="p-2 hover:bg-slate-100 rounded-lg"><LogOut size={18}/></button>
@@ -476,7 +463,7 @@ export default function App() {
         </header>
         <main className="max-w-6xl mx-auto p-8">
             <div className="flex justify-between items-end mb-8">
-                <div><h2 className="text-3xl font-bold text-slate-900">Seus Projetos</h2><p className="text-slate-500 mt-1">Gerencie seus carrosséis salvos.</p></div>
+                <div><h2 className="text-3xl font-bold">Seus Projetos</h2><p className="text-slate-500 mt-1">Gerencie seus carrosséis salvos.</p></div>
                 <button onClick={createNewProject} className="flex items-center gap-2 bg-purple-600 text-white px-5 py-3 rounded-xl hover:bg-purple-700 shadow-lg transition-all font-medium"><Plus size={20} /> Criar Novo Carrossel</button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -504,7 +491,7 @@ export default function App() {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Inter:wght@400;700;900&family=Lora:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;700;900&family=Playfair+Display:wght@400;700;900&family=Roboto:wght@400;700;900&display=swap');`}</style>
       <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50 shadow-sm">
         <div className="flex items-center gap-4">
-            <button onClick={() => setView('dashboard')} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500" title="Dashboard"><Home size={20}/></button>
+            <button onClick={() => setView('dashboard')} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500"><Home size={20}/></button>
             <input type="text" value={currentProjectName} onChange={(e) => setCurrentProjectName(e.target.value)} className="font-bold text-lg text-slate-800 bg-transparent outline-none focus:bg-slate-50 px-2 rounded" />
         </div>
         <div className="flex items-center gap-2">
@@ -540,7 +527,7 @@ export default function App() {
                         ))}
                     </div>
                     {activeTextLayer && (
-                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-3 animate-in fade-in zoom-in-95 duration-200">
+                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-3">
                             <textarea value={activeTextLayer.content} onChange={(e) => updateTextLayer(activeTextLayer.id, 'content', e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:border-purple-500 outline-none" rows={3} />
                             <div className="grid grid-cols-2 gap-2">
                                 <select value={activeTextLayer.fontFamily} onChange={(e) => updateTextLayer(activeTextLayer.id, 'fontFamily', e.target.value)} className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none">
@@ -560,7 +547,7 @@ export default function App() {
                 </div>
               </div>
               <div><label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 block">Imagens</label><label className="flex items-center justify-center gap-2 w-full p-2 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-purple-500 transition-colors"><Upload size={16}/><span className="text-xs">Carregar Foto</span><input type="file" accept="image/*" className="hidden" onChange={handleImageUpload}/></label></div>
-              <div><label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 block">Cor de Fundo</label><div className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200"><input type="color" value={activeSlide.backgroundColor} onChange={(e) => updateSlide('backgroundColor', e.target.value)} className="w-8 h-8 rounded cursor-pointer border-none bg-transparent"/><span className="text-xs font-mono">{activeSlide.backgroundColor}</span></div></div>
+              <div><label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 block">Fundo</label><div className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200"><input type="color" value={activeSlide.backgroundColor} onChange={(e) => updateSlide('backgroundColor', e.target.value)} className="w-8 h-8 rounded cursor-pointer border-none bg-transparent"/><span className="text-xs font-mono">{activeSlide.backgroundColor}</span></div></div>
             </div>
           </aside>
         )}
@@ -568,30 +555,15 @@ export default function App() {
           <div className="flex-1 overflow-auto flex items-center justify-center p-12 relative">
             {viewMode === 'single' ? (
               <div className="flex items-center gap-6 z-10">
-                <button onClick={() => setActiveSlideIndex(Math.max(0, activeSlideIndex - 1))} disabled={activeSlideIndex === 0} className="p-3 rounded-full bg-white shadow-md disabled:opacity-30 hover:bg-slate-50 transition-colors"><ChevronLeft size={28} /></button>
+                <button onClick={() => setActiveSlideIndex(Math.max(0, activeSlideIndex - 1))} disabled={activeSlideIndex === 0} className="p-3 rounded-full bg-white shadow-md hover:bg-slate-50 transition-colors"><ChevronLeft size={28} /></button>
                 <div className="relative group p-4">
                   <SlideCanvas slide={activeSlide} scale={1.2} isEditing={true} showSafeZone={showGuides} selectedTextId={selectedTextId} onSelectText={setSelectedTextId} canvasRef={slideRef} onInteractionStart={onInteractionStart} />
-                  
-                  {/* BOTÃO DUPLICAR SLIDE PRINCIPAL (POSIÇÃO CORRIGIDA) */}
                   <div className="absolute -right-14 top-1/2 -translate-y-1/2 flex flex-col gap-2">
-                    <button 
-                      onClick={(e) => duplicateSlide(activeSlideIndex, e)} 
-                      className="p-3 bg-white text-purple-600 rounded-xl shadow-xl hover:bg-purple-50 hover:scale-110 transition-all border border-purple-100" 
-                      title="Duplicar Este Slide"
-                    >
-                      <Copy size={24}/>
-                    </button>
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); removeSlide(activeSlideIndex); }}
-                      disabled={slides.length === 1}
-                      className="p-3 bg-white text-red-500 rounded-xl shadow-xl hover:bg-red-50 hover:scale-110 transition-all border border-red-100 disabled:opacity-50 disabled:scale-100" 
-                      title="Excluir"
-                    >
-                      <Trash2 size={24}/>
-                    </button>
+                    <button onClick={(e) => duplicateSlide(activeSlideIndex, e)} className="p-3 bg-white text-purple-600 rounded-xl shadow-xl hover:scale-110 transition-all border border-purple-100"><Copy size={24}/></button>
+                    <button onClick={(e) => { e.stopPropagation(); removeSlide(activeSlideIndex); }} disabled={slides.length === 1} className="p-3 bg-white text-red-500 rounded-xl shadow-xl hover:scale-110 transition-all border border-red-100 disabled:opacity-50"><Trash2 size={24}/></button>
                   </div>
                 </div>
-                <button onClick={() => setActiveSlideIndex(Math.min(slides.length - 1, activeSlideIndex + 1))} disabled={activeSlideIndex === slides.length - 1} className="p-3 rounded-full bg-white shadow-md disabled:opacity-30 hover:bg-slate-50 transition-colors"><ChevronRight size={28} /></button>
+                <button onClick={() => setActiveSlideIndex(Math.min(slides.length - 1, activeSlideIndex + 1))} disabled={activeSlideIndex === slides.length - 1} className="p-3 rounded-full bg-white shadow-md hover:bg-slate-50 transition-colors"><ChevronRight size={28} /></button>
               </div>
             ) : (
               <div className="flex items-center h-full gap-6 overflow-x-auto px-10 pb-8">
@@ -599,8 +571,8 @@ export default function App() {
                   <div key={slide.id} className="flex-shrink-0 group relative p-2">
                     <SlideCanvas slide={slide} scale={0.8} />
                     <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                       <button onClick={(e) => duplicateSlide(idx, e)} className="p-2 bg-white text-purple-600 rounded-lg shadow-lg hover:bg-purple-50 border border-purple-100"><Copy size={18}/></button>
-                       <button onClick={(e) => { e.stopPropagation(); removeSlide(idx); }} disabled={slides.length === 1} className="p-2 bg-white text-red-500 rounded-lg shadow-lg hover:bg-red-50 border border-red-100"><Trash2 size={18}/></button>
+                       <button onClick={(e) => duplicateSlide(idx, e)} className="p-2 bg-white text-purple-600 rounded-lg shadow-lg border border-purple-100"><Copy size={18}/></button>
+                       <button onClick={(e) => { e.stopPropagation(); removeSlide(idx); }} disabled={slides.length === 1} className="p-2 bg-white text-red-500 rounded-lg shadow-lg border border-red-100"><Trash2 size={18}/></button>
                     </div>
                   </div>
                 ))}
@@ -608,23 +580,23 @@ export default function App() {
             )}
           </div>
           {viewMode === 'single' && (
-            <div className="h-32 bg-white border-t border-slate-200 flex items-center px-4 gap-4 overflow-x-auto z-10 custom-scrollbar">
+            <div className="h-32 bg-white border-t border-slate-200 flex items-center px-4 gap-4 overflow-x-auto z-10">
               {slides.map((slide, idx) => (
                 <div key={slide.id} className={`relative group flex-shrink-0 cursor-pointer transition-all ${idx === activeSlideIndex ? 'ring-4 ring-purple-500 ring-offset-2' : 'opacity-60 hover:opacity-100'}`} onClick={() => setActiveSlideIndex(idx)}>
                   <div className="w-16 h-20 bg-slate-200 rounded overflow-hidden relative shadow-sm"><div className="absolute inset-0" style={{ backgroundColor: slide.backgroundColor }}></div>{slide.imageUrl && <img src={slide.imageUrl} className="absolute inset-0 w-full h-full object-cover opacity-50" alt="" />}</div>
                   <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                    <button onClick={(e) => duplicateSlide(idx, e)} className="bg-purple-600 text-white rounded-full p-1.5 shadow-lg border border-white" title="Duplicar"><Copy size={12} /></button>
+                    <button onClick={(e) => duplicateSlide(idx, e)} className="bg-purple-600 text-white rounded-full p-1.5 shadow-lg border border-white"><Copy size={12} /></button>
                   </div>
                   <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] font-bold text-center py-0.5">{idx + 1}</div>
                 </div>
               ))}
-              <button onClick={addSlide} className="w-16 h-20 border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center text-slate-400 hover:border-purple-500 hover:bg-purple-50 hover:text-purple-500 transition-all gap-1 flex-shrink-0"><Plus size={24} /><span className="text-[10px] font-bold uppercase">Novo</span></button>
+              <button onClick={addSlide} className="w-16 h-20 border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center text-slate-400 hover:border-purple-500 transition-all gap-1 flex-shrink-0"><Plus size={24} /><span className="text-[10px] font-bold">NOVO</span></button>
             </div>
           )}
         </section>
       </main>
       
-      {/* Container de Exportação Invisível */}
+      {/* EXPORT LAYER */}
       <div style={{ position: 'fixed', left: '-9999px', top: 0 }}>
         {slides.map((slide, index) => (
           <div key={slide.id} id={`export-slide-${index}`} style={{ width: '1080px', height: '1350px' }}>
