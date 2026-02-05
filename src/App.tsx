@@ -178,8 +178,7 @@ export default function App() {
   const [user, setUser] = useState<{ email: string } | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [email, setEmail] = useState('');
-  
-  const [currentProjectName, setCurrentProjectName] = useState('Carrossel');
+  const [currentProjectName, setCurrentProjectName] = useState('Meu Novo Carrossel');
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
   const [slides, setSlides] = useState<Slide[]>([createInitialSlide()]);
   const [myProjects, setMyProjects] = useState<Project[]>([]);
@@ -198,13 +197,14 @@ export default function App() {
   const activeSlide = slides[activeSlideIndex];
   const activeTextLayer = activeSlide.textLayers.find(t => t.id === selectedTextId);
 
-  // --- INICIALIZAÇÃO SEGURA ---
+  // --- INICIALIZAÇÃO SEGURA (FIM DO LOOP) ---
   useEffect(() => {
     const initApp = () => {
       try {
         const savedUser = localStorage.getItem('app_user');
         if (savedUser) {
-          setUser(JSON.parse(savedUser));
+          const parsedUser = JSON.parse(savedUser);
+          setUser(parsedUser);
           setView('dashboard');
           const data = localStorage.getItem('my_projects');
           if (data) setMyProjects(JSON.parse(data));
@@ -212,6 +212,7 @@ export default function App() {
       } catch (e) {
         console.warn("Storage reset");
       } finally {
+        // ESSENCIAL: Garante o fim do loading em qualquer circunstância
         setAuthLoading(false);
       }
     };
@@ -266,7 +267,7 @@ export default function App() {
             if (!currentProjectId) setCurrentProjectId(newProject.id);
             setSaveMessage('Salvo!');
         } catch (e) {
-            setSaveMessage('Erro!');
+            setSaveMessage('Erro ao salvar!');
         } finally {
             setIsSaving(false);
             setTimeout(() => setSaveMessage(''), 2000);
@@ -396,7 +397,7 @@ export default function App() {
         for (let i = 0; i < slides.length; i++) {
             const element = document.getElementById(`export-slide-${i}`);
             if (element) {
-                const canvas = await window.html2canvas(element, { scale: 2, useCORS: true });
+                const canvas = await window.html2canvas(element, { scale: 2, useCORS: true, logging: false });
                 const link = document.createElement('a');
                 link.download = `${currentProjectName}-${i + 1}.png`;
                 link.href = canvas.toDataURL('image/png'); 
@@ -407,7 +408,7 @@ export default function App() {
     finally { setIsExporting(false); }
   };
 
-  // --- INTERAÇÕES MOUSE ---
+  // --- MOUSE INTERACTIONS ---
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!interaction || !slideRef.current) return;
@@ -461,7 +462,7 @@ export default function App() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4">
         <Loader2 className="animate-spin text-purple-600" size={48} />
-        <p className="text-slate-400 font-medium animate-pulse text-sm uppercase tracking-widest text-center">Abrindo Laboratório...</p>
+        <p className="text-slate-400 font-medium animate-pulse text-sm uppercase tracking-widest text-center">Iniciando Laboratório...</p>
       </div>
     );
   }
@@ -477,7 +478,7 @@ export default function App() {
               <label className="text-xs font-semibold text-slate-600 uppercase">Email</label>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-200" placeholder="seu@email.com" />
             </div>
-            <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-3 rounded-xl transition-all shadow-lg">Entrar (Acesso Livre)</button>
+            <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-3 rounded-xl transition-all shadow-lg text-sm uppercase tracking-wide">Entrar no Sistema</button>
           </form>
         </div>
       </div>
@@ -491,26 +492,26 @@ export default function App() {
            <div className="flex items-center gap-2"><div className="bg-gradient-to-tr from-purple-500 to-pink-500 text-white p-2 rounded-lg"><Smartphone size={20} /></div><h1 className="text-xl font-bold">Dashboard</h1></div>
            <div className="flex items-center gap-4">
              <div className="text-sm text-slate-500">Olá, <strong>{user?.email}</strong></div>
-             <button onClick={handleLogout} className="p-2 hover:bg-slate-100 rounded-lg"><LogOut size={18}/></button>
+             <button onClick={handleLogout} className="p-2 hover:bg-slate-100 rounded-lg transition-colors"><LogOut size={18}/></button>
            </div>
         </header>
         <main className="max-w-6xl mx-auto p-8">
             <div className="flex justify-between items-end mb-8">
-                <div><h2 className="text-3xl font-bold">Seus Projetos</h2><p className="text-slate-500 mt-1">Gerencie seus carrosséis salvos.</p></div>
-                <button onClick={createNewProject} className="flex items-center gap-2 bg-purple-600 text-white px-5 py-3 rounded-xl hover:bg-purple-700 shadow-lg transition-all font-medium"><Plus size={20} /> Criar Novo Carrossel</button>
+                <div><h2 className="text-3xl font-bold">Seus Carrosséis</h2><p className="text-slate-500 mt-1 text-sm">Gere e edite os seus projetos guardados.</p></div>
+                <button onClick={createNewProject} className="flex items-center gap-2 bg-purple-600 text-white px-6 py-3 rounded-xl hover:bg-purple-700 shadow-lg shadow-purple-200 transition-all font-medium"><Plus size={20} /> Criar Novo Projeto</button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {myProjects.length === 0 && (
                     <div className="col-span-full py-20 text-center bg-white rounded-2xl border border-dashed border-slate-300">
                          <FolderOpen className="mx-auto text-slate-300 mb-4" size={48} />
-                         <p className="text-slate-500">Nenhum projeto encontrado. Comece agora!</p>
+                         <p className="text-slate-500">Nenhum projeto encontrado. Comece a criar agora mesmo!</p>
                     </div>
                 )}
                 {myProjects.map(proj => (
                     <div key={proj.id} onClick={() => openProject(proj)} className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-xl transition-all cursor-pointer group relative">
-                        <div className="h-40 bg-slate-100 flex items-center justify-center"><div className="w-20 h-28 shadow-sm" style={{ backgroundColor: proj.slides[0].backgroundColor }}></div></div>
-                        <div className="p-4"><h3 className="font-bold text-slate-800">{proj.name}</h3><p className="text-xs text-slate-400 mt-1">Atualizado em {new Date(proj.lastModified).toLocaleDateString()}</p></div>
-                        <button onClick={(e) => deleteProject(proj.id, e)} className="absolute top-2 right-2 p-2 bg-white text-red-500 rounded-lg shadow opacity-0 group-hover:opacity-100 hover:bg-red-50 transition-all"><Trash2 size={16}/></button>
+                        <div className="h-44 bg-slate-100 flex items-center justify-center border-b border-slate-100"><div className="w-24 h-32 shadow-sm scale-90" style={{ backgroundColor: proj.slides[0].backgroundColor }}></div></div>
+                        <div className="p-4"><h3 className="font-bold text-slate-800 truncate">{proj.name}</h3><p className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider">Última edição: {new Date(proj.lastModified).toLocaleDateString()}</p></div>
+                        <button onClick={(e) => deleteProject(proj.id, e)} className="absolute top-2 right-2 p-2 bg-white/90 text-red-500 rounded-lg shadow-sm opacity-0 group-hover:opacity-100 hover:bg-red-50 transition-all"><Trash2 size={16}/></button>
                     </div>
                 ))}
             </div>
@@ -521,13 +522,13 @@ export default function App() {
 
   // --- EDITOR VIEW ---
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-800">
+    <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-800 overflow-hidden">
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Inter:wght@400;700;900&family=Lora:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;700;900&family=Playfair+Display:wght@400;700;900&family=Roboto:wght@400;700;900&display=swap');`}</style>
       <header className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50 shadow-sm">
         <div className="flex items-center gap-4">
-            <button onClick={() => setView('dashboard')} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500" title="Voltar ao Dashboard"><Home size={20}/></button>
+            <button onClick={() => setView('dashboard')} className="p-2 hover:bg-slate-100 rounded-lg text-slate-500" title="Dashboard"><Home size={20}/></button>
             <div className="h-6 w-px bg-slate-200"></div>
-            <input type="text" value={currentProjectName} onChange={(e) => setCurrentProjectName(e.target.value)} className="font-bold text-lg text-slate-800 bg-transparent outline-none focus:bg-slate-50 px-2 rounded" />
+            <input type="text" value={currentProjectName} onChange={(e) => setCurrentProjectName(e.target.value)} className="font-bold text-lg text-slate-800 bg-transparent outline-none focus:bg-slate-50 px-2 rounded max-w-[200px]" />
         </div>
         <div className="flex items-center gap-2">
           <div className="flex bg-slate-100 p-1 rounded-lg">
@@ -542,7 +543,7 @@ export default function App() {
           <button onClick={handleExport} disabled={isExporting} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-800 transition-all text-sm font-medium">
             {isExporting ? <Loader2 size={16} className="animate-spin" /> : <><Download size={16} /> Exportar</>}
           </button>
-          <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-500 transition-colors" title="Sair"><LogOut size={18} /></button>
+          <button onClick={handleLogout} className="p-2 text-slate-400 hover:text-red-500 transition-colors ml-2"><LogOut size={18} /></button>
         </div>
       </header>
 
@@ -550,31 +551,31 @@ export default function App() {
         {viewMode === 'single' && (
           <aside className="w-full md:w-80 bg-white border-r border-slate-200 flex flex-col overflow-y-auto h-full z-20 shadow-lg md:shadow-none absolute md:relative custom-scrollbar">
             <div className="p-5 space-y-6">
-              {/* TEXTOS */}
+              {/* SEÇÃO: TEXTOS */}
               <section>
                 <div className="flex items-center justify-between mb-3">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2"><Type size={14} /> Textos</label>
-                    <button onClick={addTextLayer} className="flex items-center gap-1 text-[10px] bg-purple-100 text-purple-700 px-2 py-1 rounded-md font-medium hover:bg-purple-200 transition-colors"><Plus size={12}/> Adicionar</button>
+                    <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2"><Type size={14} /> Textos</label>
+                    <button onClick={addTextLayer} className="text-[10px] bg-purple-100 text-purple-700 px-2 py-1 rounded-md font-bold hover:bg-purple-200 transition-colors"><Plus size={12}/> Adicionar</button>
                 </div>
                 <div className="space-y-3">
-                    <div className="space-y-1 mb-4 max-h-32 overflow-y-auto custom-scrollbar">
+                    <div className="space-y-1 mb-4 max-h-32 overflow-y-auto custom-scrollbar border border-slate-50 p-1 rounded-lg">
                         {activeSlide.textLayers.map(layer => (
-                            <div key={layer.id} onClick={() => setSelectedTextId(layer.id)} className={`flex items-center justify-between p-2 rounded-lg cursor-pointer border text-xs ${selectedTextId === layer.id ? 'bg-purple-50 border-purple-300 text-purple-800 font-medium' : 'bg-white border-slate-100 hover:border-slate-300 text-slate-600'}`}>
-                                <span className="truncate max-w-[150px]">{layer.content || "(Vazio)"}</span>
+                            <div key={layer.id} onClick={() => setSelectedTextId(layer.id)} className={`flex items-center justify-between p-2 rounded-lg cursor-pointer border text-[11px] transition-all ${selectedTextId === layer.id ? 'bg-purple-50 border-purple-300 text-purple-800 font-bold' : 'bg-white border-slate-100 hover:border-slate-300 text-slate-600'}`}>
+                                <span className="truncate max-w-[150px]">{layer.content || "(Sem texto)"}</span>
                                 <button onClick={(e) => { e.stopPropagation(); removeTextLayer(layer.id); }} className="text-slate-400 hover:text-red-500"><Trash2 size={12}/></button>
                             </div>
                         ))}
                     </div>
                     {activeTextLayer ? (
-                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
-                            <textarea value={activeTextLayer.content} onChange={(e) => updateTextLayer(activeTextLayer.id, 'content', e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:border-purple-500 outline-none" rows={3} autoFocus />
+                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-3 animate-in fade-in slide-in-from-right-4 duration-300 shadow-sm">
+                            <textarea value={activeTextLayer.content} onChange={(e) => updateTextLayer(activeTextLayer.id, 'content', e.target.value)} className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:border-purple-500 outline-none resize-none" rows={3} autoFocus />
                             <div className="flex items-center justify-between">
-                                <div className="flex bg-white border border-slate-200 rounded-lg overflow-hidden">
+                                <div className="flex bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
                                     <button onClick={() => updateTextLayer(activeTextLayer.id, 'isBold', !activeTextLayer.isBold)} className={`p-1.5 hover:bg-slate-50 border-r ${activeTextLayer.isBold ? 'text-purple-600 bg-purple-50' : 'text-slate-500'}`}><Bold size={14}/></button>
                                     <button onClick={() => updateTextLayer(activeTextLayer.id, 'isItalic', !activeTextLayer.isItalic)} className={`p-1.5 hover:bg-slate-50 border-r ${activeTextLayer.isItalic ? 'text-purple-600 bg-purple-50' : 'text-slate-500'}`}><Italic size={14}/></button>
                                     <button onClick={() => updateTextLayer(activeTextLayer.id, 'isUnderline', !activeTextLayer.isUnderline)} className={`p-1.5 hover:bg-slate-50 ${activeTextLayer.isUnderline ? 'text-purple-600 bg-purple-50' : 'text-slate-500'}`}><Underline size={14}/></button>
                                 </div>
-                                <div className="flex bg-white border border-slate-200 rounded-lg overflow-hidden">
+                                <div className="flex bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
                                     <button onClick={() => updateTextLayer(activeTextLayer.id, 'align', 'left')} className={`p-1.5 hover:bg-slate-50 border-r ${activeTextLayer.align === 'left' ? 'text-purple-600 bg-purple-50' : 'text-slate-500'}`}><AlignLeft size={14}/></button>
                                     <button onClick={() => updateTextLayer(activeTextLayer.id, 'align', 'center')} className={`p-1.5 hover:bg-slate-50 border-r ${activeTextLayer.align === 'center' ? 'text-purple-600 bg-purple-50' : 'text-slate-500'}`}><AlignCenter size={14}/></button>
                                     <button onClick={() => updateTextLayer(activeTextLayer.id, 'align', 'right')} className={`p-1.5 hover:bg-slate-50 ${activeTextLayer.align === 'right' ? 'text-purple-600 bg-purple-50' : 'text-slate-500'}`}><AlignRight size={14}/></button>
@@ -582,115 +583,114 @@ export default function App() {
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                                 <div className="space-y-1">
-                                    <span className="text-[10px] text-slate-400">Tamanho</span>
-                                    <div className="flex items-center bg-white border border-slate-200 rounded-lg">
-                                        <button onClick={() => updateTextLayer(activeTextLayer.id, 'fontSize', Math.max(8, activeTextLayer.fontSize - 1))} className="px-2 py-1.5 hover:bg-slate-50"><Minus size={12}/></button>
-                                        <span className="flex-1 text-center text-xs">{Math.round(activeTextLayer.fontSize)}</span>
-                                        <button onClick={() => updateTextLayer(activeTextLayer.id, 'fontSize', Math.min(200, activeTextLayer.fontSize + 1))} className="px-2 py-1.5 hover:bg-slate-50"><PlusIcon size={12}/></button>
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase">Tamanho</span>
+                                    <div className="flex items-center bg-white border border-slate-200 rounded-lg shadow-sm">
+                                        <button onClick={() => updateTextLayer(activeTextLayer.id, 'fontSize', Math.max(8, activeTextLayer.fontSize - 1))} className="px-2 py-1.5 hover:bg-slate-50 border-r"><Minus size={12}/></button>
+                                        <span className="flex-1 text-center text-xs font-bold">{Math.round(activeTextLayer.fontSize)}</span>
+                                        <button onClick={() => updateTextLayer(activeTextLayer.id, 'fontSize', Math.min(200, activeTextLayer.fontSize + 1))} className="px-2 py-1.5 hover:bg-slate-50 border-l"><PlusIcon size={12}/></button>
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <span className="text-[10px] text-slate-400">Fonte</span>
-                                    <select value={activeTextLayer.fontFamily} onChange={(e) => updateTextLayer(activeTextLayer.id, 'fontFamily', e.target.value)} className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs outline-none">
+                                    <span className="text-[10px] text-slate-400 font-bold uppercase">Fonte</span>
+                                    <select value={activeTextLayer.fontFamily} onChange={(e) => updateTextLayer(activeTextLayer.id, 'fontFamily', e.target.value)} className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] outline-none shadow-sm cursor-pointer">
                                         {fontOptions.map(f => <option key={f.name} value={f.value}>{f.name}</option>)}
                                     </select>
                                 </div>
                             </div>
-                            {/* ESPAÇAMENTO */}
                             <div className="bg-slate-100/50 p-2 rounded-lg border border-slate-200 space-y-2">
-                                <div className="flex items-center justify-between"><span className="text-[10px] text-slate-500 flex items-center gap-1"><ArrowUpDown size={10}/> Altura Linha</span><span className="text-[10px] text-slate-400">{activeTextLayer.lineHeight.toFixed(1)}</span></div>
+                                <div className="flex items-center justify-between"><span className="text-[10px] text-slate-500 font-bold flex items-center gap-1 uppercase"><ArrowUpDown size={10}/> Altura Linha</span><span className="text-[10px] text-slate-400">{activeTextLayer.lineHeight.toFixed(1)}</span></div>
                                 <input type="range" min="0.8" max="2.5" step="0.1" value={activeTextLayer.lineHeight} onChange={(e) => updateTextLayer(activeTextLayer.id, 'lineHeight', parseFloat(e.target.value))} className="w-full h-1 bg-slate-300 rounded-lg accent-purple-600 cursor-pointer"/>
-                                <div className="flex items-center justify-between mt-1"><span className="text-[10px] text-slate-500 flex items-center gap-1"><ArrowLeftRight size={10}/> Espaçamento</span><span className="text-[10px] text-slate-400">{activeTextLayer.letterSpacing}px</span></div>
+                                <div className="flex items-center justify-between mt-1"><span className="text-[10px] text-slate-500 font-bold flex items-center gap-1 uppercase"><ArrowLeftRight size={10}/> Espaçamento</span><span className="text-[10px] text-slate-400">{activeTextLayer.letterSpacing}px</span></div>
                                 <input type="range" min="-2" max="20" step="0.5" value={activeTextLayer.letterSpacing} onChange={(e) => updateTextLayer(activeTextLayer.id, 'letterSpacing', parseFloat(e.target.value))} className="w-full h-1 bg-slate-300 rounded-lg accent-purple-600 cursor-pointer"/>
                             </div>
                             <div className="flex gap-2">
-                                <div className="flex-1 flex items-center gap-2 bg-white p-1.5 rounded-lg border border-slate-200">
+                                <div className="flex-1 flex items-center gap-2 bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm">
                                     <input type="color" value={activeTextLayer.color} onChange={(e) => updateTextLayer(activeTextLayer.id, 'color', e.target.value)} className="w-5 h-5 rounded cursor-pointer border-none bg-transparent"/>
-                                    <span className="text-[10px] text-slate-500">Cor Texto</span>
+                                    <span className="text-[10px] text-slate-500 font-bold uppercase">Cor</span>
                                 </div>
-                                <div className="flex-1 flex items-center gap-2 bg-white p-1.5 rounded-lg border border-slate-200">
+                                <div className="flex-1 flex items-center gap-2 bg-white p-1.5 rounded-lg border border-slate-200 shadow-sm">
                                     <div className="relative">
                                         <input type="color" value={activeTextLayer.backgroundColor === 'transparent' ? '#ffffff' : activeTextLayer.backgroundColor} onChange={(e) => updateTextLayer(activeTextLayer.id, 'backgroundColor', e.target.value)} className="w-5 h-5 rounded cursor-pointer border-none bg-transparent"/>
                                         {activeTextLayer.backgroundColor === 'transparent' && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className="w-full h-px bg-red-500 rotate-45"></div></div>}
                                     </div>
-                                    <span className="text-[10px] text-slate-500 flex items-center gap-1"><Highlighter size={10}/> Fundo</span>
+                                    <span className="text-[10px] text-slate-500 font-bold uppercase flex items-center gap-1"><Highlighter size={10}/> Fundo</span>
                                     {activeTextLayer.backgroundColor !== 'transparent' && <button onClick={() => updateTextLayer(activeTextLayer.id, 'backgroundColor', 'transparent')} className="ml-auto text-slate-400 hover:text-red-500"><X size={10}/></button>}
                                 </div>
                             </div>
                         </div>
-                    ) : <div className="text-center py-4 bg-slate-50 rounded-lg border border-dashed border-slate-200 text-xs text-slate-400">Selecione um texto para editar</div>}
+                    ) : <div className="text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-[11px] text-slate-400 italic">Selecione um texto no slide para o editar</div>}
                 </div>
               </section>
 
-              {/* LAYOUT */}
-              <section>
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2"><LayoutTemplate size={14} /> Layout</label>
+              {/* SEÇÃO: LAYOUT */}
+              <section className="pt-2 border-t border-slate-100">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2"><LayoutTemplate size={14} /> Modelos de Layout</label>
                 <div className="grid grid-cols-2 gap-2">
                     {(['text-only', 'image-top', 'image-bottom', 'split'] as const).map((t) => (
-                        <button key={t} onClick={() => updateSlide('template', t)} className={`p-2 text-[10px] border rounded-lg transition-all ${activeSlide.template === t ? 'border-purple-500 bg-purple-50 text-purple-700 font-medium' : 'border-slate-200 text-slate-600 hover:border-slate-300'}`}>{t.replace('-', ' ')}</button>
+                        <button key={t} onClick={() => updateSlide('template', t)} className={`p-2 text-[10px] uppercase font-bold border rounded-lg transition-all ${activeSlide.template === t ? 'border-purple-500 bg-purple-50 text-purple-700 shadow-inner' : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50'}`}>{t.replace('-', ' ')}</button>
                     ))}
                 </div>
               </section>
 
-              {/* IMAGEM */}
-              <section>
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2"><ImageIcon size={14} /> Imagem</label>
+              {/* SEÇÃO: IMAGEM */}
+              <section className="pt-2 border-t border-slate-100">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2"><ImageIcon size={14} /> Gestão de Imagem</label>
                 <div className="space-y-3">
-                    <label className="flex items-center justify-center gap-2 w-full p-2 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-colors group">
-                        <Upload size={16} className="text-slate-400 group-hover:text-purple-500" />
-                        <span className="text-xs text-slate-500 group-hover:text-purple-700 font-medium">Carregar Arquivo</span>
+                    <label className="flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-all group">
+                        <Upload size={18} className="text-slate-400 group-hover:text-purple-500" />
+                        <span className="text-xs text-slate-500 group-hover:text-purple-700 font-bold uppercase tracking-wider">Subir Imagem</span>
                         <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload}/>
                     </label>
                     {activeSlide.imageUrl && (
-                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-3">
-                            <div className="flex items-center gap-2 text-slate-500 mb-1"><Maximize2 size={12} /><span className="text-[10px] uppercase font-bold tracking-wider">Ajuste Interno</span></div>
+                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-3 shadow-inner">
+                            <div className="flex items-center gap-2 text-slate-500 mb-1"><Maximize2 size={12} /><span className="text-[10px] uppercase font-bold tracking-wider">Ajustes da Imagem</span></div>
                             <div className="space-y-1">
-                                <div className="flex justify-between text-[10px] text-slate-500"><span>Zoom</span><span>{activeSlide.imgZoom.toFixed(1)}x</span></div>
+                                <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase"><span>Zoom</span><span>{activeSlide.imgZoom.toFixed(1)}x</span></div>
                                 <input type="range" min="1" max="3" step="0.1" value={activeSlide.imgZoom} onChange={(e) => updateSlide('imgZoom', parseFloat(e.target.value))} className="w-full h-1 bg-slate-300 rounded-lg accent-purple-600 cursor-pointer"/>
                             </div>
-                            <div className="grid grid-cols-2 gap-2">
+                            <div className="grid grid-cols-2 gap-3">
                                 <div className="space-y-1">
-                                    <span className="text-[10px] text-slate-500">Pan X</span>
+                                    <span className="text-[10px] text-slate-500 font-bold uppercase">Pan X</span>
                                     <input type="range" min="0" max="100" value={activeSlide.imgPanX} onChange={(e) => updateSlide('imgPanX', parseFloat(e.target.value))} className="w-full h-1 bg-slate-300 rounded-lg accent-purple-600"/>
                                 </div>
                                 <div className="space-y-1">
-                                    <span className="text-[10px] text-slate-500">Pan Y</span>
+                                    <span className="text-[10px] text-slate-500 font-bold uppercase">Pan Y</span>
                                     <input type="range" min="0" max="100" value={activeSlide.imgPanY} onChange={(e) => updateSlide('imgPanY', parseFloat(e.target.value))} className="w-full h-1 bg-slate-300 rounded-lg accent-purple-600"/>
                                 </div>
                             </div>
-                            <button onClick={() => updateSlide('imageUrl', '')} className="w-full py-1 text-[10px] text-red-500 bg-red-50 rounded hover:bg-red-100 transition-colors font-medium">Remover Imagem</button>
+                            <button onClick={() => updateSlide('imageUrl', '')} className="w-full py-2 text-[10px] text-red-500 bg-red-50 rounded-lg hover:bg-red-100 transition-colors font-bold uppercase tracking-widest">Remover Imagem</button>
                         </div>
                     )}
                 </div>
               </section>
 
-              {/* CORES E ESTILO */}
-              <section>
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2"><Palette size={14} /> Cores e Estilo</label>
+              {/* SEÇÃO: CORES E ESTILO */}
+              <section className="pt-2 border-t border-slate-100">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2"><Palette size={14} /> Estilo Visual</label>
                 <div className="space-y-4">
                     <div className="space-y-1">
-                        <span className="text-[10px] text-slate-400 uppercase font-semibold">Fundo do Slide</span>
-                        <div className="flex items-center gap-2 bg-slate-50 p-1.5 rounded-lg border border-slate-200">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Cor de Fundo</span>
+                        <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-lg border border-slate-200 shadow-sm">
                             <input type="color" value={activeSlide.backgroundColor} onChange={(e) => updateSlide('backgroundColor', e.target.value)} className="w-8 h-8 rounded cursor-pointer border-none bg-transparent"/>
                             <span className="text-xs font-mono text-slate-500 uppercase">{activeSlide.backgroundColor}</span>
                         </div>
                     </div>
-                    <div className="bg-purple-50/50 p-3 rounded-xl border border-purple-100 space-y-3">
+                    <div className="bg-purple-50/50 p-3 rounded-xl border border-purple-100 space-y-3 shadow-inner">
                         <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-purple-700"><Layers size={14} /><span className="text-[10px] uppercase font-bold tracking-wider">Sobreposição</span></div>
+                            <div className="flex items-center gap-2 text-purple-700 font-bold uppercase text-[10px] tracking-widest"><Layers size={14} /> Filtro Colorido</div>
                             <button onClick={() => updateSlide('overlayEnabled', !activeSlide.overlayEnabled)} className={`p-1.5 rounded-md transition-all ${activeSlide.overlayEnabled ? 'bg-purple-600 text-white shadow-sm' : 'bg-slate-200 text-slate-500'}`}>{activeSlide.overlayEnabled ? <Eye size={14} /> : <EyeOff size={14} />}</button>
                         </div>
                         {activeSlide.overlayEnabled && (
                             <div className="space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
                                 <div className="space-y-1">
-                                    <span className="text-[10px] text-purple-400 uppercase font-semibold">Cor da Camada</span>
-                                    <div className="flex items-center gap-2 bg-white p-1.5 rounded-lg border border-purple-100">
+                                    <span className="text-[10px] text-purple-400 uppercase font-bold">Cor do Filtro</span>
+                                    <div className="flex items-center gap-2 bg-white p-1.5 rounded-lg border border-purple-100 shadow-sm">
                                         <input type="color" value={activeSlide.overlayColor} onChange={(e) => updateSlide('overlayColor', e.target.value)} className="w-6 h-6 rounded cursor-pointer border-none bg-transparent"/>
                                         <span className="text-xs font-mono text-slate-500 uppercase">{activeSlide.overlayColor}</span>
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <div className="flex justify-between text-xs text-slate-500"><span className="flex items-center gap-1"><Droplets size={10}/> Opacidade</span><span>{activeSlide.overlayOpacity}%</span></div>
+                                    <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest"><span className="flex items-center gap-1"><Droplets size={10}/> Opacidade</span><span>{activeSlide.overlayOpacity}%</span></div>
                                     <input type="range" min="0" max="100" value={activeSlide.overlayOpacity} onChange={(e) => updateSlide('overlayOpacity', parseInt(e.target.value))} className="w-full h-1 bg-slate-300 rounded-lg accent-purple-600 cursor-pointer"/>
                                 </div>
                             </div>
@@ -699,12 +699,12 @@ export default function App() {
                 </div>
               </section>
 
-              {/* FONTE PERSONALIZADA */}
-              <section>
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2"><Plus size={14} /> Fonte Externa</label>
+              {/* SEÇÃO: FONTE PERSONALIZADA */}
+              <section className="pt-2 border-t border-slate-100 pb-10">
+                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2"><Plus size={14} /> Google Fonts</label>
                 <div className="flex flex-col gap-2">
-                    <input type="text" value={customFontInput} onChange={(e) => setCustomFontInput(e.target.value)} placeholder="Nome no Google Fonts (Ex: Oswald)" className="w-full px-2 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[10px] outline-none" />
-                    <button onClick={loadCustomFont} className="w-full px-2 py-1.5 bg-slate-200 hover:bg-purple-500 hover:text-white rounded-lg text-[10px] font-medium transition-colors">Aplicar ao Selecionado</button>
+                    <input type="text" value={customFontInput} onChange={(e) => setCustomFontInput(e.target.value)} placeholder="Ex: Oswald ou Montserrat" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-[10px] outline-none shadow-inner" />
+                    <button onClick={loadCustomFont} className="w-full px-2 py-2 bg-slate-200 hover:bg-purple-600 hover:text-white rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all">Importar Fonte</button>
                 </div>
               </section>
             </div>
@@ -714,9 +714,9 @@ export default function App() {
         <section className="flex-1 bg-slate-100 relative flex flex-col overflow-hidden">
           <div className="flex-1 overflow-auto flex items-center justify-center p-12 relative custom-scrollbar">
             {viewMode === 'single' ? (
-              <div className="flex items-center gap-6 z-10 animate-in fade-in zoom-in-95 duration-500">
-                <button onClick={() => setActiveSlideIndex(Math.max(0, activeSlideIndex - 1))} disabled={activeSlideIndex === 0} className="p-3 rounded-full bg-white shadow-md disabled:opacity-30 hover:bg-slate-50 transition-colors text-slate-600"><ChevronLeft size={28} /></button>
-                <div className="relative group p-4">
+              <div className="flex items-center gap-8 z-10 animate-in fade-in zoom-in-95 duration-500">
+                <button onClick={() => setActiveSlideIndex(Math.max(0, activeSlideIndex - 1))} disabled={activeSlideIndex === 0} className="p-4 rounded-full bg-white shadow-xl disabled:opacity-30 hover:bg-slate-50 hover:scale-110 transition-all text-slate-600 border border-slate-100"><ChevronLeft size={32} /></button>
+                <div className="relative group p-4 bg-white/20 backdrop-blur-sm rounded-3xl shadow-sm">
                   <SlideCanvas 
                     slide={activeSlide} 
                     scale={1.2} 
@@ -727,28 +727,31 @@ export default function App() {
                     canvasRef={slideRef} 
                     onInteractionStart={onInteractionStart} 
                   />
-                  {/* BARRA DE AÇÕES FLUTUANTE DO SLIDE */}
-                  <div className="absolute -right-14 top-1/2 -translate-y-1/2 flex flex-col gap-3">
-                    <button onClick={(e) => duplicateSlide(activeSlideIndex, e)} className="p-3 bg-white text-purple-600 rounded-xl shadow-xl hover:scale-110 transition-all border border-purple-100 group" title="Duplicar Este Slide">
-                        <Copy size={24}/>
+                  {/* BARRA DE AÇÕES FLUTUANTE DO SLIDE ATUAL */}
+                  <div className="absolute -right-16 top-1/2 -translate-y-1/2 flex flex-col gap-4">
+                    <button onClick={(e) => duplicateSlide(activeSlideIndex, e)} className="p-4 bg-white text-purple-600 rounded-2xl shadow-2xl hover:scale-110 active:scale-95 transition-all border border-purple-100 group" title="Duplicar Slide">
+                        <Copy size={26}/>
                     </button>
-                    <button onClick={(e) => { e.stopPropagation(); removeSlide(activeSlideIndex); }} disabled={slides.length === 1} className="p-3 bg-white text-red-500 rounded-xl shadow-xl hover:scale-110 transition-all border border-red-100 disabled:opacity-50 disabled:scale-100" title="Excluir">
-                        <Trash2 size={24}/>
+                    <button onClick={(e) => { e.stopPropagation(); removeSlide(activeSlideIndex); }} disabled={slides.length === 1} className="p-4 bg-white text-red-500 rounded-2xl shadow-2xl hover:scale-110 active:scale-95 transition-all border border-red-100 disabled:opacity-50 disabled:scale-100" title="Excluir Slide">
+                        <Trash2 size={26}/>
                     </button>
                   </div>
+                  <div className="absolute -bottom-8 left-0 right-0 text-center uppercase tracking-[0.3em] font-bold text-[10px] text-slate-400">Página {activeSlideIndex + 1} de {slides.length}</div>
                 </div>
-                <button onClick={() => setActiveSlideIndex(Math.min(slides.length - 1, activeSlideIndex + 1))} disabled={activeSlideIndex === slides.length - 1} className="p-3 rounded-full bg-white shadow-md disabled:opacity-30 hover:bg-slate-50 transition-colors text-slate-600"><ChevronRight size={28} /></button>
+                <button onClick={() => setActiveSlideIndex(Math.min(slides.length - 1, activeSlideIndex + 1))} disabled={activeSlideIndex === slides.length - 1} className="p-4 rounded-full bg-white shadow-xl disabled:opacity-30 hover:bg-slate-50 hover:scale-110 transition-all text-slate-600 border border-slate-100"><ChevronRight size={32} /></button>
               </div>
             ) : (
-              <div className="flex items-center h-full gap-6 overflow-x-auto px-10 pb-8 custom-scrollbar">
+              <div className="flex items-center h-full gap-8 overflow-x-auto px-20 pb-12 custom-scrollbar">
                 {slides.map((slide, idx) => (
-                  <div key={slide.id} className="flex-shrink-0 group relative p-2 transition-transform hover:-translate-y-2 duration-300">
-                    <SlideCanvas slide={slide} scale={0.8} />
-                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                       <button onClick={(e) => duplicateSlide(idx, e)} className="p-2 bg-white text-purple-600 rounded-lg shadow-lg border border-purple-100 hover:bg-purple-50"><Copy size={18}/></button>
-                       <button onClick={(e) => { e.stopPropagation(); removeSlide(idx); }} disabled={slides.length === 1} className="p-2 bg-white text-red-500 rounded-lg shadow-lg border border-red-100 hover:bg-red-50"><Trash2 size={18}/></button>
+                  <div key={slide.id} className="flex-shrink-0 group relative p-3 transition-transform hover:-translate-y-4 duration-300">
+                    <div className="shadow-2xl rounded-lg overflow-hidden">
+                        <SlideCanvas slide={slide} scale={0.7} />
                     </div>
-                    <div className="absolute bottom-4 left-4 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded backdrop-blur-sm">Slide {idx + 1}</div>
+                    <div className="absolute top-6 right-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
+                       <button onClick={(e) => duplicateSlide(idx, e)} className="p-2.5 bg-white text-purple-600 rounded-xl shadow-2xl border border-purple-100 hover:bg-purple-50 hover:scale-110 transition-all"><Copy size={18}/></button>
+                       <button onClick={(e) => { e.stopPropagation(); removeSlide(idx); }} disabled={slides.length === 1} className="p-2.5 bg-white text-red-500 rounded-xl shadow-2xl border border-red-100 hover:bg-red-50 hover:scale-110 transition-all"><Trash2 size={18}/></button>
+                    </div>
+                    <div className="absolute -bottom-4 left-0 right-0 text-center text-[10px] font-bold uppercase tracking-widest text-slate-500 bg-white/80 backdrop-blur-sm py-1 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">Página {idx + 1}</div>
                   </div>
                 ))}
               </div>
@@ -756,24 +759,24 @@ export default function App() {
           </div>
 
           {viewMode === 'single' && (
-            <div className="h-32 bg-white border-t border-slate-200 flex items-center px-4 gap-4 overflow-x-auto z-10 custom-scrollbar shadow-[0_-4px_12px_rgba(0,0,0,0.02)]">
+            <div className="h-32 bg-white border-t border-slate-200 flex items-center px-6 gap-5 overflow-x-auto z-10 custom-scrollbar shadow-[0_-8px_30px_rgba(0,0,0,0.04)]">
               {slides.map((slide, idx) => (
-                <div key={slide.id} className={`relative group flex-shrink-0 cursor-pointer transition-all ${idx === activeSlideIndex ? 'ring-4 ring-purple-500 ring-offset-2' : 'opacity-60 hover:opacity-100'}`} onClick={() => setActiveSlideIndex(idx)}>
-                  <div className="w-16 h-20 bg-slate-200 rounded overflow-hidden relative shadow-sm"><div className="absolute inset-0" style={{ backgroundColor: slide.backgroundColor }}></div>{slide.imageUrl && <img src={slide.imageUrl} className="absolute inset-0 w-full h-full object-cover opacity-50" alt="" />}</div>
+                <div key={slide.id} className={`relative group flex-shrink-0 cursor-pointer transition-all duration-300 ${idx === activeSlideIndex ? 'ring-4 ring-purple-500 ring-offset-2 scale-105 z-10' : 'opacity-50 hover:opacity-100'}`} onClick={() => setActiveSlideIndex(idx)}>
+                  <div className="w-16 h-20 bg-slate-200 rounded-md overflow-hidden relative shadow-md"><div className="absolute inset-0" style={{ backgroundColor: slide.backgroundColor }}></div>{slide.imageUrl && <img src={slide.imageUrl} className="absolute inset-0 w-full h-full object-cover opacity-50" alt="" />}</div>
                   <div className="absolute -top-2 -right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                    <button onClick={(e) => duplicateSlide(idx, e)} className="bg-purple-600 text-white rounded-full p-1.5 shadow-lg border border-white hover:scale-110 transition-transform"><Copy size={12} /></button>
+                    <button onClick={(e) => duplicateSlide(idx, e)} className="bg-purple-600 text-white rounded-full p-1.5 shadow-lg border-2 border-white hover:scale-110 transition-transform"><Copy size={11} /></button>
                   </div>
-                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] font-bold text-center py-0.5">{idx + 1}</div>
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[9px] font-bold text-center py-0.5">{idx + 1}</div>
                 </div>
               ))}
-              <button onClick={addSlide} className="w-16 h-20 border-2 border-dashed border-slate-300 rounded-lg flex flex-col items-center justify-center text-slate-400 hover:border-purple-500 hover:bg-purple-50 hover:text-purple-600 transition-all gap-1 flex-shrink-0"><Plus size={24} /><span className="text-[10px] font-bold">NOVO</span></button>
+              <button onClick={addSlide} className="w-16 h-20 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:border-purple-500 hover:bg-purple-50 hover:text-purple-600 transition-all gap-1 flex-shrink-0 group"><Plus size={24} className="group-hover:scale-125 transition-transform" /><span className="text-[9px] font-bold uppercase tracking-wider">Novo</span></button>
             </div>
           )}
         </section>
       </main>
       
-      {/* CAMADA INVISÍVEL PARA EXPORTAÇÃO (HD) */}
-      <div style={{ position: 'fixed', left: '-9999px', top: 0 }}>
+      {/* CAMADA INVISÍVEL PARA EXPORTAÇÃO (ALTA RESOLUÇÃO) */}
+      <div style={{ position: 'fixed', left: '-9999px', top: 0, pointerEvents: 'none' }}>
         {slides.map((slide, index) => (
           <div key={slide.id} id={`export-slide-${index}`} style={{ width: '1080px', height: '1350px' }}>
             <SlideCanvas slide={slide} scale={3.375} />
